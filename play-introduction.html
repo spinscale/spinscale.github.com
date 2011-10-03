@@ -1,0 +1,1066 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+	<title>Shower</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=1234, user-scalable=no">
+	<link rel="stylesheet" href="themes/ribbon/styles/style.css">
+	<style>
+		#Cover H2 {
+			color:#FFF;
+			text-align:center;
+			font-size:70px;
+			}
+	</style>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+
+<link rel="stylesheet" href="http://yandex.st/highlightjs/6.0/styles/github.min.css">
+<script src="http://yandex.st/highlightjs/6.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+</head>
+<body class="list">
+	<header class="caption">
+		<h1>Play Framework - Making a java webframework looking less Java</h1>
+		<p>Alexander Reelsen</p>
+	</header>
+
+<div class="slide" id="Cover"><div>
+	<section style="background-color: white">
+	  <header>
+        <h1>Play Framework</h1>
+		<h3 style="color: gray">Making a java web framework looking less java</h2>
+      </header>
+			<img src="images/play-logo.png">
+			<div style="text-align : right;">
+			Alexander Reelsen<br />
+			Lusini GmbH<br />
+			alexander@reelsen.net<br />
+			</div>
+	</section>
+</div></div>
+
+
+<div class="slide" id="Toc-1"><div>
+  <section>
+    <header>
+      <h2>Table of contents</h2>
+    </header>
+    <ul>
+      <li>Overview &amp; Application structure</li>
+      <li>MVC architecture explained: Controller, View, Model</li>
+      <li>Validation, Jobs, Asynchronous requests, Caching</li>
+      <li>Modules and Plugins, Dependency Management, Testing</li>
+      <li>Production Setup, Monitoring</li>
+      <li style="margin-top: 1%">Coding Workshop</li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide" id="about"><div>
+  <section>
+    <header>
+      <h2>About me - Alexander Reelsen</h2>
+    </header>
+    <ul>
+      <li>Studied information systems</li>
+      <li>10 years linux system engineering, converted to software engineering</li>
+      <li>Web framework enthusiast, fed up with complex java environment for simple webapps</li>
+      <li>Other interests: Scaling web architectures, Web 2.0 (nosql, search)</li>
+      <li>Started with play 1.0 in 2009, started writing cookbook in dec 2010</li>
+      <li>Working at <a href="http://www.lusini.de">Lusini GmbH</a>, building an ecommerce platform</li>
+      <li>Streetball/Basketball</li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide" id="introweb"><div>
+  <section>
+    <header>
+      <h2>The web is taking over</h2>
+    </header>
+    <ul>
+      <li>Web as ubiquitous platform</li>
+      <li>Providing data, not web pages</li>
+      <li>Browser as the operating system</li>
+      <li>JavaScript gains steam, toolkits as well as engines</li>
+      <li>Web <strong>applications</strong> are alive</li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide" id="play-in-10-secs"><div>
+  <section>
+    <header>
+      <h2>Play in 10 seconds - Quick overview</h2>
+    </header>
+    <ul>
+      <li>No compile, deploy, restart cycle - Fix the bug and hit reload!</li>
+      <li>Share nothing system - no state in the server</li>
+      <li>Clean templating system - using groovy</li>
+      <li>Exact errors (including line numbers, even for templates)</li>
+      <li>Lots of builtin features for fast development</li>
+      <li>Pure Java</li>
+      <li>Starts fast, runs fast</li>
+      <li>Extensible by modules</li>
+      <li>WebSocket support, <strong>no servlet support</strong></li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide" id="play-history"><div>
+  <section>
+    <header>
+      <h2>History</h2>
+    </header>
+    <ul>
+      <li>Exists since 2008, by Guillaume Bort from zenexity
+      <li>Releases
+        <ul>
+	  <li>1.0 in October 2009</li>
+	  <li>1.1 in November 2010</li>
+	  <li>1.2 in April 2011</li>
+	</ul>
+      <li>Current: 1.2.4 + development tree + <a href="http://scala.playframework.org">play-scala</a>
+      <li>Play 2.0 preview is available</li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide" id="play-architecture"><div>
+  <section>
+    <header>
+      <h2>A web framework imposes its own architecture style</h2>
+    </header>
+    <ul>
+      <li>REST as architectural paradigm for ressources</li>
+      <li>URLs are the entry point (and implicit interface) to your application</li>
+      <li>Do not work against HTTP (stateless protocol)</li>
+      <li>Convention over configuration</li>
+      <li>Only fractions of differences between development and production mode</li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide bg" id="play-architecture-diagram"><div style="background : white">
+  <section>
+    <header style="text-align : right">
+      <h2>Play framework architecture</h2>
+    </header>
+    <img src="play-architecture.png" style="height: 100% ; width: 65%">
+  </section>
+</div></div>
+
+<div class="slide" id="play-libraries"><div>
+  <section>
+    <header>
+      <h2>Play is a lot of glue code</h2>
+    </header>
+    <ul>
+      <li>Hibernate, JBoss Netty, log4j</li>
+      <li>Oval, Lucene, Gson</li>
+      <li>Eclipse compiler, ivy, xstream</li>
+      <li>Apache Commons: fileupload, httpclient, email, logging, beanutils</li>
+      <li>EhCache, JAMon, Groovy, javassist</li>
+      <li>c3p0, joda time, htmlunit</li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide" id="play-application-layout"><div>
+  <section>
+    <header>
+      <h2>Play application layout</h2>
+    </header>
+      <code>play new myapp</code>
+<script>
+function makeTreeNode(id, idToOpen) {
+  $("#" + idToOpen).hide();
+  $("#" + id).click(function() { $("#" + idToOpen).fadeToggle('slow', 'linear') });
+  $("#" + id).css("cursor", "pointer");
+}
+$(document).ready(function() {
+  makeTreeNode("conffolder", "conffiles");
+  makeTreeNode("appfolder", "appfolders");
+  makeTreeNode("modelsfolder", "modelscontent");
+  makeTreeNode("controllersfolder", "controllerscontent");
+  makeTreeNode("viewsfolder", "viewscontent");
+})
+</script>
+
+<ul>
+  <li><a id="conffolder">conf</a>
+  <ul id="conffiles">
+    <li><code>application.conf</code></li>
+    <li><code>routes</code></li>
+    <li><code>dependencies.yml</code></li>
+    <li><code>messages</code></li>
+  </ul>
+</li>
+<li><a  id="appfolder">app</a>
+  <ul id="appfolders">
+    <li><a id="modelsfolder">models</a>
+      <ul id="modelscontent">
+        <li><code>User.java</code></li>
+        <li><code>Message.java</code></li>
+      </ul>
+    </li>
+    <li><a id="controllersfolder">controllers</a>
+      <ul id="controllerscontent">
+        <li><code>Application.java</code></li>
+      </ul>
+    </li>
+    <li><a id="viewsfolder">views</a>
+      <ul id="viewscontent"><li><a>Application</a>
+        <ul>
+          <li><code>index.html</code></li>
+        </ul>
+      </li></ul>
+    </li>
+  </ul>
+</li>
+<li><span>test</span></li>
+<li><span>lib</span></li>
+<li><span>public</span></li>
+<li><span>modules</span></li>
+
+  </section>
+</div></div>
+
+
+<div class="slide" id="application.conf"><div>
+  <section>
+    <header>
+      <h2>conf/application.conf</h2>
+    </header>
+    <ul>
+     <li>Configure database access (via JDBC):<code>db=fs</code>, <code>db=mem</code>
+<code>db=mysql:user:pwd@database_name</code></li>
+      <li>I18N</li>
+      <li>Logging, Caching, Mail configuration</li>
+      <li>Node &amp; system specific settings</li>
+      <li>Module specific configuration</li>
+    </ul>
+  </section>
+</div></div>
+
+
+<div class="slide" id="routes"><div>
+  <section>
+    <header>
+      <h2>conf/routes</h2>
+    </header>
+    <pre>
+    <code class="text">GET     /                 <a href="#example-controller-index">Application.index</a>
+GET     /user/{username}  <a href="#example-controller-showuser">Application.showUser</a>
+POST    /user             <a href="#example-controller-index">Application.createUser</a>
+DELETE  /user/{username}  <a href="#example-controller-index">Application.deleteUser</a>
+GET     /public           staticDir:public</code>
+    </pre>
+  </section>
+</div></div>
+
+
+<div class="slide" id="example-controller-index"><div>
+  <section>
+    <header>
+      <h2>Controller</h2>
+    </header>
+<pre><code>public class Application extends Controller {
+  public static void index() {
+    List&lt;User> users = User.findAll();
+    render(users);
+  }
+}
+</code></pre>
+  </section>
+</div></div>
+
+
+<div class="slide" id="example-controller-showuser"><div>
+  <section>
+    <header>
+      <h2>Controller - Showing a user</h2>
+    </header>
+    <pre><code>  public static void showUser(String username) {
+    User user = User.find("byUsername", username).first();
+    notFoundIfNull(user);
+    render(user);
+  }</code></pre>
+  </section>
+</div></div>
+
+
+<div class="slide" id="example-controller-deleteuser"><div>
+  <section>
+    <header>
+      <h2>Controller - Deleting a user</h2>
+    </header>
+<pre><code>  public static void deleteUser(String username) {
+    User user = User.find("byUsername", username).first();
+    notFoundIfNull(user);
+    user.delete();
+    index();
+  }</code></pre>
+  </section>
+</div></div>
+
+
+<div class="slide" id="example-controller-createuser"><div>
+  <section>
+    <header>
+      <h2>Controller - Creating a user</h2>
+    </header>
+<pre><code>  public static void createUser(@Valid User user) {
+    if (validation.hasErrors()) {
+      flash.error("Invalid user data");
+      Application.index();
+    }
+    user = user.save();
+    Application.showUser(user.username);
+  }
+</code></pre>
+  </section>
+</div></div>
+
+<div class="slide" id="example-controller-session"><div>
+  <section>
+    <header>
+      <h2>Controller - Accessing the session</h2>
+    </header>
+<pre><code>  public class AuthController extends Controller {
+	  @Before(unless = "login")  public static void checkSession() {    if (!session.contains("username")) {      forbidden("You are not authorized");    }  }</code></pre>
+  </section>
+</div></div>
+
+<div class="slide" id="example-controller-session-2"><div>
+  <section>
+    <header>
+      <h2>Controller - Accessing the session</h2>
+    </header>
+<pre><code class="java">  public void login(String username, String password) {    User user = User.find("byUsernameAndPassword",
+      username, Crypto.passwordHash(password)).first();    notFoundIfNull(user);    session.put("username", user);    Application.index();  }</code></pre>
+  </section>
+</div></div>
+
+
+<div class="slide" id="example-template"><div>
+  <section>
+    <header>
+      <h2>Template: app/views/Application/index.html</h2>
+    </header>
+<pre><code>#{extends ’main.html’ /}
+&lt;ul&gt;
+#{list items:users, as:’user’}
+  &lt;li&gt;
+    #{a @Application.showUser(user.username)}
+      ${user.username}
+    #{/a}
+  &lt;/li&gt;
+#{/list}
+&lt;/ul&gt;
+</code></pre>
+  </section>
+</div></div>
+
+
+<div class="slide" id="example-template-form-object"><div>
+  <section>
+    <header>
+      <h2>Template: Creating complex objects</h2>
+    </header>
+<pre><code>#{form <a href="#example-controller-createuser">@Application.createUser()</a>}
+Username: &lt;input type="text" name="user.username" /&gt;
+Password: &lt;input type="pass" name="user.password" /&gt;
+Email: &lt;input type="text" name="user.email" /&gt;
+&lt;input type="submit" value="Add user" /&gt;
+#{/form}
+</code></pre>
+  </section>
+</div></div>
+
+
+<div class="slide" id="moretags"><div>
+  <section>
+    <header>
+      <h2>Templating: More tags</h2>
+    </header>
+    <ul>
+      <li><code>doLayout</code>, <code>extends</code>, <code>include</code></li>
+      <li><code>if</code>, <code>ifnot</code>, <code>else</code>, <code>elseif</code></li>
+      <li><code>&{’i18nVariable’}</code> out of conf/messages.de</li>
+      <li>Always access to: <code>session</code>, <code>flash</code>, <code>request</code>, <code>params</code>, <code>lang</code>, <code>messages</code>, <code>out</code>, <code>play</code></li>
+    </ul>
+    <a href="">Official templating documentation</a>
+  </section>
+</div></div>
+
+
+<div class="slide" id="templating-mixings"><div>
+  <section>
+    <header>
+      <h2>Using mixins for better templating</h2>
+    </header>
+<pre><code>public class SqrtExtension extends JavaExtensions {  public static Double sqrt(Number number) {    return Math.sqrt(number.doubleValue());  }}</code></pre>
+<pre><code>&lt;div&gt;Square root of x value is: <mark>${x.sqrt()}</mark>&lt;/div&gt;
+</code></pre>
+  </section>
+</div></div>
+
+
+<div class="slide" id="model-validation"><div>
+  <section>
+    <header>
+      <h2>Model</h2>
+    </header>
+<pre><code>@Entity public class User extends Model {  @Required @Column(unique = true)  public String username;  
+  @Required @Email  public String email;
+    @Required  public String password;}</code></pre>
+  </section>
+</div></div>
+
+<div class="slide" id="model-finders"><div>
+  <section>
+    <header>
+      <h2>Model - Finders</h2>
+    </header>
+<pre><code>User user = User.find("byUsername", username).first();
+user.password = "foobar"; // setter calluser.save();
+List&lt;User&gt; users = User.findAll();users.get(0).delete();
+
+List&lt;String&gt; names = User.find("select u.username from User u order by u.username desc").fetch();</code></pre>
+  </section>
+</div></div>
+
+<div class="slide" id="jobs"><div>
+  <section>
+    <header>
+      <h2>Jobs - execution flow outside requests</h2>
+    </header>
+    <ul>
+      <li>Scheduled jobs (housekeeping)</li>
+      <li> Bootstrap jobs (initial data initialization)</li>
+    </ul>
+<pre><code>/* @Every("1h"), @OnApplicationStop */@OnApplicationStartpublic class LoadDataJob extends Job {  public void doJob() {    /* .. do whatever you want */  }}</code></pre>
+  </section>
+</div></div>
+
+
+
+<div class="slide" id="promises"><div>
+  <section>
+    <header>
+      <h2>Promise is the new Future</h2>
+    </header>
+    <ul>
+      <li>Asynchonous operations allows to reuse the connection thread pool while the request is not closed</li>
+      <li>Inherits from <code>Future</code>, <code>onRedeem()</code> is executed on arrival</li>
+      <li><code>play.libs.F</code>: <code>Promise.waitAll()</code>, <code>Promise.waitAny()</code></li>
+    </ul>
+<pre><code>public static void renderPdf() {
+  InputStream is = await(new PdfRenderJob().now());
+  renderBinary(is);
+}</code></pre>
+  </section>
+</div></div>
+
+
+<div class="slide" id="promises-async"><div>
+  <section>
+    <header>
+      <h2>Promises for asynchronous Requests</h2>
+    </header>
+<pre><code>public static void getResponses() {
+  Promise<HttpResponse> r1 = WS.url("http://www.google.de").getAsync();
+  Promise<HttpResponse> r2 = WS.url("http://www.lycos.de").getAsync();
+  List&lt;HttpResponse> responses = 
+      Promise.waitAll(r1, r2).getOrNull();
+  render(responses);
+}
+</code></pre>
+
+Thread is suspended at <code class="important">Promise.waitAll(r1, r2)</code>
+
+  </section>
+</div></div>
+
+
+<div class="slide" id="caching"><div>
+  <section>
+    <header>
+      <h2>Caching</h2>
+    </header>
+    <ul>
+      <li><code>String f = Cache.get("id", String.class);</code></li>
+      <li><code>Cache.set("id", "someId", "5mn");</code></li>
+      <li>Writing your own implementation is implementing one interface</li>
+      <li>Existing implementations: EhCache (default), memcached, <a href="http://www.playframework.org/modules/hazelcast">hazelcast</a></li>
+<pre><code>memcached=enabled
+memcached.host=127.0.0.1:11211</code></pre></li>
+    </ul>
+  </section>
+</div></div>
+
+
+<div class="slide" id="caching-controller"><div>
+  <section>
+    <header>
+      <h2>Caching inside the controller</h2>
+    </header>
+<pre><code>/* caches the whole result */
+@CacheFor("5s")
+public static void time() {
+    /* HTTP header Cache-Control: max-age: 1 */
+    response.cacheFor("1s");
+    renderText(new Date());
+}</code></pre>
+  </section>
+</div></div>
+
+
+<div class="slide" id="caching-template"><div>
+  <section>
+    <header>
+      <h2>Caching inside templates</h2>
+    </header>
+<ul>
+<li>Make sure no <mark class="important">expensive computation</mark> happened in the controller</li>
+<li>Fetching 1000 entities in the controller, then using the cached version in the template is useless</li>
+</ul>
+<pre><code>#{cache 'currentTime', for:'3s'}
+   ${new java.util.Date()}
+#{/cache}</code></pre>
+  </section>
+</div></div>
+
+
+<div class="slide" id="modules"><div>
+  <section>
+    <header>
+      <h2>Modules &amp; Plugins</h2>
+    </header>
+    <ul>
+      <li>Modules provide arbitrary extensions (HTML, CSS, Java, deployment helpers, i18n, URLs)</li>
+      <li>Modules are mini applications inside your application</li>
+      <li>Packaged as zip file, fetched from repository</li>
+      <li>Currently there are more than 100 modules, but still far from the rich grails eco system</li>
+      <li>Plugins are java classes inheriting from <code>PlayPlugin</code> and extending functionality of an application via hooks</li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide" id="modules-plugin"><div>
+  <section>
+    <header>
+      <h2>Providing hooks to extend functionality</h2>
+    </header>
+    <ul>
+      <li><code>play.PlayPlugin</code> is the key class, has a priority</li>
+      <li>Startup: <code>onLoad()</code>, <code> onApplicationStart()</code>, <code> afterApplicationStart()</code>, <code> onApplicationStop()</code>, <code> onConfigurationRead()</code>, <code> onRoutesLoaded()</code>, <code> onApplicationReady()</code>, <code> afterFixturesLoad()</code></li>
+      <li>Status: <code>getStatus(),</code> <code>getJsonStatus()</code></li>
+      <li>Objects: <code>enhance()</code>, <code>bind()</code>, <code>unbind()</code>, <code>getMessage()</code></li>
+      <li>Events: <code>onEvent</code>, <code>PlayPlugin.postEvent()</code></li>
+    </ul>	
+  </section>
+</div></div>
+
+<div class="slide" id="modules-plugin-2"><div>
+  <section>
+    <header>
+      <h2>PlayPlugin hooks</h2>
+    </header>
+    <ul>
+      <li>Invocation: <code>rawInvocation()</code>, <code>beforeInvocation()</code>, <code>afterInvocation()</code>, <code>onInvocationException()</code>, <code>invocationFinally()</code>, <code> onInvocationSuccess()</code></li>
+      <li>Action Invocation: <code>beforeActionInvocation()</code>, <code>onActionInvocationResult()</code>, <code>afterActionInvocation()</code></li>
+      <li>Template: <code>loadTemplate()</code>, <code>overrideTemplateSource()</code>, <code>addTemplateExtensions()</code>, <code>addMimeTypes()</code></li>
+    </ul>	
+  </section>
+</div></div>
+
+<div class="slide" id="modules-plugin-3"><div>
+  <section>
+    <header>
+      <h2>PlayPlugin hooks</h2>
+    </header>
+    <ul>
+      <li>Development: <code>detectChange()</code>, <code>detectClassesChange()</code>, <code>beforeDetectingChanges()</code>, <code>onClassesChange()</code></li>
+      <li>Requests & routing: <code>serveStatic()</code>, <code>onRequestRouting()</code>, <code>routeRequest()</code></li>
+    </ul>	
+  </section>
+</div></div>
+
+<div class="slide" id="dependency-management"><div>
+  <section>
+    <header>
+      <h2>Dependency & module management</h2>
+    </header>
+    <ul>
+      <li>Based on Apache Ivy, but using YAML</li>
+      <li>Configuration file: <code>conf/dependencies.yml</code>
+      <li><code>play deps --sync</code></li>
+    </ul>
+<pre><code>require:
+    - play
+    - play -> crud
+    - play -> cobertura 2.1
+    - org.elasticsearch -> elasticsearch 0.17.2</code></pre>
+  </section>
+</div></div>
+
+
+<div class="slide" id="dependency-management-yml"><div>
+  <section>
+    <header>
+      <h2>Dependency Management - Repositories</h2>
+    </header>
+    <ul>
+      <li>Maven or custom repositories can be added (URL layout can be configured)</li>
+    </ul>
+<pre><code>repositories:
+    - sonatype:
+        type: iBiblio
+        root: <span style="font-size: 0.7em">"http://oss.sonatype.org/content/repositories/releases"</span>
+        contains:
+            - org.elasticsearch -> *</code></pre>
+  </section>
+</div></div>
+
+
+
+<div class="slide" id="testing-overview"><div>
+  <section>
+    <header>
+      <h2>Testing</h2>
+    </header>
+    <ul>
+      <li><span style="font-weight: bold">Unit tests</span><br/> Standard junit tests extending from UnitTest - need a JPA environment</li>
+      <li><span style="font-weight: bold">Functional tests</span><br />Integration tests checking the HTTP responses and their contents</li>
+      <li><span style="font-weight: bold">Selenium tests</span><br />GUI tests. Very nice controllable, in-browser playback recorder<br />Possibility of doing step-by-step slow debugging</li>
+      <li><span style="font-weight: bold"><a href="http://www.playframework.org/modules/cobertura">Cobertura module</a>, <a href="http://www.playframework.org/modules/spocktests">spock plugin</a></span>
+    </ul>
+  </section>
+</div></div>
+
+
+<div class="slide" id="testing-yaml"><div>
+  <section>
+    <header>
+      <h2>Using YAML to provide test data</h2>
+    </header>
+<pre><code>User(aleree):  username: alr  password: test  email   : alexander@reelsen.net</code></pre>
+
+<pre><code>@Before public void setUp() {  Fixtures.deleteAll();  Fixtures.load("data.yml");}</code></pre>
+  </section>
+</div></div>
+
+<div class="slide" id="testing-unit"><div>
+  <section>
+    <header>
+      <h2>Unit testing</h2>
+    </header>
+    Starts a play environment including JPA if needed (when started inside the IDE)
+<pre><code>public class BasicTest extends UnitTest {
+    @Test
+    public void testThatSomethingInTheModelWorks() {
+        // Model tests go here
+    }
+}</code></pre>
+  </section>
+</div></div>
+
+<div class="slide" id="testing-functional"><div>
+  <section>
+    <header>
+      <h2>Functional testing</h2>
+    </header>
+<pre><code>public class ApplicationTest extends FunctionalTest {
+    @Test
+    public void testThatIndexPageWorks() {
+        Response response = GET("/");
+        assertIsOk(response);
+        assertContentType("text/html", response);
+        assertCharset("UTF-8", response);
+    }
+}</code></pre>
+  </section>
+</div></div>
+
+<div class="slide" id="testing-selenium"><div>
+  <section>
+    <header>
+      <h2>Selenium testing</h2>
+    </header>
+    <ul>
+      <li>Own methods to receive emails and access the cache in tests</li>
+      <li>TODO: Find out firefox plugin</li>
+    </ul>
+<pre><code>#{fixture delete:'all', load:'data.yml' /}
+
+#{selenium}
+    open('/')
+    assertNotTitle('Application error')
+#{/selenium}</code></pre>
+  </section>
+</div></div>
+
+<div class="slide bg" id="testing-running"><div>
+  <section>
+    <header style="text-align : right ; margin-top: 60%">
+      <h2>Running the tests at localhost:9000/@tests</h2>
+    </header>
+    <img src="images/tests.png">
+  </section>
+</div></div>
+
+<div class="slide bg" id="testing-running-2"><div>
+  <section>
+    <header style="text-align : right ; margin-top: 60%">
+      <h2>Running the tests at localhost:9000/@tests</h2>
+    </header>
+    <img src="images/seleniumtest.png">
+  </section>
+</div></div>
+
+<div class="slide" id="testing-ci"><div>
+  <section>
+    <header>
+      <h2>Continouos integration</h2>
+    </header>
+    <ul>
+      <li><a href="https://github.com/guillaumebort/calimoucho">Calimoucho</a>, runs also on <a href="http://integration.playframework.org">integration.playframework.org</a>
+      <li><a href="https://wiki.jenkins-ci.org/display/JENKINS/play-plugin">Hudson plugin</a><br />Runs <code>play auto-test</code></li>
+    </ul>
+    <img src="images/calimoucho.png" width="20%" height="20%">
+    <img src="images/jenkins.png" width="20%" height="20%">
+  </section>
+</div></div>
+
+<div class="slide bg" id="testing-calimoucho"><div>
+  <section>
+    <img src="images/calimoucho.png" alt="">
+  </section>
+</div></div>
+
+<div class="slide bg" id="testing-jenkins"><div>
+  <section>
+    <img src="images/jenkins.png" alt="">
+  </section>
+</div></div>
+
+
+<div class="slide" id="running-in-production"><div>
+  <section>
+    <header>
+      <h2>Running in production</h2>
+    </header>
+    <ul>
+      <li>No servlet container or application server needed</li>
+      <li>Deploying into a servlet container is supported but not recommended</li>
+      <li>SSL support built-in</li>
+      <li>Serving static files is faster with apache or nginx</li>
+      <li>Several environments in one configuration file possible</li>
+      <li>Support for automatic deploying into GAE, Heroku, Stax</li>
+    </ul>
+  </section>
+</div></div>
+
+
+<div class="slide" id="running-in-production-profiles"><div>
+  <section>
+    <header>
+      <h2>Setting environments in application.conf</h2>
+    </header>
+<pre><code>application.name=My application
+%test.application.name=Test application
+%prod.application.name=Production application
+</code></pre>
+<code>play start --%prod</code>
+  </section>
+</div></div>
+
+<div class="slide" id="security"><div>
+  <section>
+    <header>
+      <h2>Security</h2>
+    </header>
+    <ul>
+      <li>The session cookie is signed but not encrypted!</li>
+      <li>The template engine automatically escapes strings</li>
+      <li>SQL injection is only possible when writing own JPA queries</li>
+      <li>CSRF: Use of authenticity token</li>
+    </ul>
+    See more at the <a href="http://www.playframework.org/documentation/security">security documentation</a>
+  </section>
+</div></div>
+
+
+<div class="slide" id="monitoring"><div>
+  <section>
+    <header>
+      <h2>Monitoring via <code>play status</code></h2>
+    </header>
+    <ul>
+      <li>Provides information about your application state</li>
+      <li>JVM infos, Play version, running threads and application configuration information</li>
+      <li>Loaded modules, loaded plugins (order)</li>
+      <li>Datasource, Jobs, execution pool information</li>
+      <li>Detailed information about controller runtimes and template rendering times, including min/max/avg values</li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide" id="monitoring-2"><div>
+  <section>
+    <header>
+      <h2>Adding arbitrary monitoring points in your code</h2>
+    </header>
+Adding a simple counting monitor
+<pre><code>MonitorFactory.add("CacheHitsFoo", "cnt", 1);</code></pre>
+
+Adding a monitor which calculates min/max/avg values
+<pre><code>Monitor monitor = MonitorFactory.start("RemoteApiCall");
+/// … logic goes here
+monitor.stop();</code></pre>
+
+All monitors are automatically added to the status output
+  </section>
+</div></div>
+
+<div class="slide" id="roadmap"><div>
+  <section>
+    <header>
+      <h2>Roadmap</h2>
+    </header>
+    <ul>
+      <li>Play 2.0 is coming, <a href="http://www.playframework.org/2.0">available as preview</a></li>
+      <li>1.x will be supported and developed at least for next 8 months</li>
+      <li>The core will be more scala, but Java and Scala will be used</li>
+      <li>Typesafe template engine, typesafe router (more performance)</li>
+      <li>No more Hibernate (ebean as replacement)</li>
+      <li>SBT as build system</li>
+      <li>Native Akka support</li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide shout" id="finish"><div>
+  <section>
+    <header>
+      <h2>Questions?</h2>
+    </header>
+  </section>
+</div></div>
+
+
+<div class="slide" id="book-introduction"><div>
+  <section>
+    <header>
+      <h2>Books: Introducing the Play! framework</h2>
+    </header>
+    <div style="float: left; padding-right: 1em"><img src="images/playframework-book-introduction.jpg"></div>
+    <div><a href="http://the-play-book.co.uk">Introducing the Play! framework</a><br />by Wayne Ellis</a></div>
+    <div style="float: none"></div>
+  </section>
+</div></div>
+
+
+<div class="slide" id="book-cookbook"><div>
+  <section>
+    <header>
+      <h2>Books: Play Framework Cookbook</h2>
+    </header>
+    <div style="float: left; padding-right: 1em; width: 40%"><img width="100%" src="images/playframework-book-cookbook.jpg"></div>
+    <div><a href="http://www.packtpub.com/play-framework-cookbook/book">Play Framework Cookbook</a><br />by Alexander Reelsen</a></div>
+    <div style="float: none"></div>
+  </section>
+</div></div>
+
+
+<div class="slide" id="resources"><div>
+  <section>
+    <header>
+      <h2>Resources</h2>
+    </header>
+    <ul>
+      <li><a href="http://www.playframework.org">Playframework</a></li>
+      <li>Twitter: <a href="http://twitter.com/playframework">@playframework</a></li>
+      <li>My presentations at <a href="http://www.slideshare.net/areelsen/">slideshare</a></li>
+      <li>German: Articles from 2009 in kaffeeklatsch magazine (<a href="http://www.bookware.de/kaffeeklatsch/archiv/ KaffeeKlatsch-2009-11.pdf">part 1</a>, <a href="http://www.bookware.de/kaffeeklatsch/archiv/ KaffeeKlatsch-2009-12.pdf">part 2</a>)</li>
+      <li><a href="http://www.packtpub.com/play-framework-cookbook/book">Play framework cookbook</a> (example sources on <a href="https://github.com/spinscale/">github</a>)</li>
+      <li>Presentation has been done with <a href="https://github.com/pepelsbey/shower">shower</a></li>
+    </ul>
+  </section>
+</div></div>
+
+
+<!--
+	<div class="slide" id="TwoLinesHeader"><div>
+		<section>
+			<header>
+				<h2>Two rows.<br>Mighty heading</h2>
+			</header>
+			<p>This <code>&lt;tool&gt;</code> is provided <strong>without</strong> warranty, guarantee, or much in the way of explanation. Note that use of this tool may or may not crash <em>your</em> browser.</p>
+		</section>
+	</div></div>
+
+	<div class="slide" id="UnorderedList"><div>
+		<section>
+			<header>
+				<h2>Unordered List</h2>
+			</header>
+			<ul>
+				<li>This tool is provided</li>
+				<li>Without warranty, guarantee</li>
+				<li>Or much in the way of explanation
+					<ol>
+						<li>Note that use of this tool</li>
+						<li>May or may not crash your browser</li>
+						<li>Lock up your machine</li>
+					</ol>
+				</li>
+				<li>Erase your hard drive.</li>
+			</ul>
+		</section>
+	</div></div>
+
+	<div class="slide" id="OrderedList"><div>
+		<section>
+			<header>
+				<h2>Ordered List</h2>
+			</header>
+			<ol>
+				<li>Note that use of this tool</li>
+				<li>Erase your hard drive.</li>
+				<li>May or may not crash your browser
+					<ul>
+						<li>This tool is provided</li>
+						<li>Or much in the way of explanation</li>
+						<li>Without warranty, guarantee</li>
+					</ul>
+				</li>
+				<li>Lock up your machine</li>
+			</ol>
+		</section>
+	</div></div>
+	<div class="slide bg" id="Picture"><div>
+		<section>
+			<header>
+				<h2>Picture</h2>
+			</header>
+			<img src="pictures/picture.jpg" alt="">
+		</section>
+	</div></div>
+	<div class="slide" id="CodeSample"><div>
+		<section>
+			<header>
+				<h2>Code Sample</h2>
+			</header>
+			<pre>
+				<code>&lt;html lang="en-US"&gt;</code>
+				<code><mark>&lt;head&gt;</mark></code>
+				<code>    &lt;title&gt;Shower&lt;/title&gt;</code>
+				<code>    &lt;meta charset="<mark class="important">UTF-8</mark>"&gt;</code>
+				<code>    &lt;link rel="stylesheet" href="s/screen.css"&gt;</code>
+				<code>    &lt;script src="j/jquery.js"&gt;&lt;/script&gt;</code>
+				<code><mark>&lt;/head&gt;</mark></code>
+			</pre>
+		</section>
+	</div></div>
+	<div class="slide" id="CodeNotes"><div>
+		<section>
+			<header>
+				<h2>Code Notes</h2>
+			</header>
+			<pre>
+				<code><mark>&lt;html</mark> lang="en-US"&gt;</code>
+			</pre>
+			<p class="note">May or may not crash your browser</p>
+			<pre>
+				<code><mark>&lt;meta</mark> charset="<mark>UTF-8</mark>"&gt;</code>
+			</pre>
+			<p class="note">Lock up your machine</p>
+		</section>
+	</div></div>
+	<div class="slide shout" id="Shout"><div>
+		<section>
+			<header>
+				<h2>Shout!</h2>
+			</header>
+		</section>
+	</div></div>
+	<div class="slide shout" id="Demo"><div>
+		<section>
+			<header>
+				<h2><a href="examples/index.htm" target="_blank">Demo</a></h2>
+			</header>
+		</section>
+	</div></div>
+	<div class="slide" id="BlockQuote"><div>
+		<section>
+			<header>
+				<h2>Block Quote</h2>
+			</header>
+			<blockquote cite="Anonymous">
+				<p>This tool is provided without warranty, guarantee, or much in the way of explanation. Note that use of this tool may or may not crash your browser, lock up your machine, erase your hard drive.</p>
+			</blockquote>
+		</section>
+	</div></div>
+-->
+
+	<!--
+		This feature is under development!
+		
+		Add class “inner” to any parent element
+		to start inner navigation section. Pressing
+		next button will add class “active” to every
+		next sibling child starting from the first one.
+
+		Actual behavior depends on styles of the current
+		theme: on active state you could show previously
+		hidden items or emphasize it for example by
+		color or bold font weight.
+
+		To start slide with the first active alement
+		add class “active” manually.
+
+		After activation of the last child pressing next
+		button will turn next slide.
+
+	<div class="slide" id="InnerNavigation"><div>
+		<section>
+			<header>
+				<h2>Inner Navigation</h2>
+			</header>
+			<ol class="inner">
+				<li class="active">This tool is provided</li>
+				<li>Without warranty, guarantee</li>
+				<li>Or much in the way of explanation
+				<li>Erase your hard drive.</li>
+			</ol>
+		</section>
+	</div></div> -->
+	<!--
+	<div class="slide" id="ThankYou"><div>
+		<section>
+			<header>
+				<h2>Shower Presentation Template</h2>
+			</header>
+			<p>Vadim Makeev, Opera Software</p>
+			<ul>
+				<li><a href="http://pepelsbey.net">pepelsbey.net</a></li>
+				<li><a href="http://twitter.com/pepelsbey">twitter.com/pepelsbey</a></li>
+				<li><a href="mailto:pepelsbey@gmail.com">pepelsbey@gmail.com</a></li>
+			</ul>
+			<p>Shower: <a href="http://github.com/pepelsbey/shower">github.com/pepelsbey/shower</a></p>
+		</section>
+	</div></div>
+	-->
+	<!--
+		To hide progress bar from entire presentation
+		just remove “progress” element.
+		-->
+<div class="progress"><div></div></div>
+<script src="scripts/script.js"></script>
+<!-- Co-anchorht © 2010–2011 Vadim Makeev, http://pepelsbey.net/ -->
+</body>
+</html>
