@@ -1,15 +1,15 @@
 <!DOCTYPE HTML>
 <html lang="en-US">
 <head>
-	<title>Play Framework - Making a java webframework looking less Java</title>
+	<title>Play Framework - Making a java webframework looking Java-like</title>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=1234, user-scalable=no">
 	<link rel="stylesheet" href="themes/ribbon/styles/style.css">
 	<style>
 		#Cover H3 {
 			color:gray;
-			text-align:center;
-			font-size:70px;
+			font-size:35px;
+			padding-top: 0.2em;
 			}
 	</style>
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
@@ -21,7 +21,7 @@
 </head>
 <body class="list">
 	<header class="caption">
-		<h1>Play Framework - Making a java webframework looking less Java</h1>
+		<h1>Play Framework - A java webframework looking less Java-like</h1>
 		<p>Alexander Reelsen</p>
 	</header>
 
@@ -29,12 +29,14 @@
 	<section style="background-color: white">
 	  <header>
         <h1>Play Framework</h1>
-		<h3 style="color: gray">Making a java web framework looking less java</h2>
+			<h3>A java web framework looking less like java</h2>
       </header>
+			<div style="text-align : center;">
 			<img src="images/play-logo.png">
+			</div>
 			<div style="text-align : right;">
 			Alexander Reelsen<br />
-			Lusini GmbH<br />
+			@spinscale<br />
 			alexander@reelsen.net<br />
 			</div>
 	</section>
@@ -402,7 +404,7 @@ Email: &lt;input type="text" name="user.email" /&gt;
       <h2>Using mixins for better templating</h2>
     </header>
 <pre><code>public class SqrtExtension extends JavaExtensions {  public static Double sqrt(Number number) {    return Math.sqrt(number.doubleValue());  }}</code></pre>
-<pre><code>&lt;div&gt;Square root of x value is: <mark>${x.sqrt()}</mark>&lt;/div&gt;
+<pre><code>&lt;div&gt;Square root of ${x} value is: <mark>${x.sqrt()}</mark>&lt;/div&gt;
 </code></pre>
   </section>
 </div></div>
@@ -441,7 +443,7 @@ List&lt;String&gt; names = User.find("select u.username from User u order by u.
       <li>Scheduled jobs (housekeeping)</li>
       <li> Bootstrap jobs (initial data initialization)</li>
     </ul>
-<pre><code>/* @Every("1h"), @OnApplicationStop */@OnApplicationStartpublic class LoadDataJob extends Job {  public void doJob() {    /* .. do whatever you want */  }}</code></pre>
+<pre><code>/* @Every("1h"), @OnApplicationStop, @On("0 0 12 * * ?") */@OnApplicationStartpublic class LoadDataJob extends Job {  public void doJob() {    /* .. do whatever you want */  }}</code></pre>
   </section>
 </div></div>
 
@@ -658,13 +660,13 @@ public static void time() {
     <header>
       <h2>Unit testing</h2>
     </header>
-    Starts a play environment including JPA if needed (when started inside the IDE)
 <pre><code>public class BasicTest extends UnitTest {
     @Test
     public void testThatSomethingInTheModelWorks() {
         // Model tests go here
     }
 }</code></pre>
+    Starts a play environment including JPA if needed (when started inside the IDE)
   </section>
 </div></div>
 
@@ -692,7 +694,7 @@ public static void time() {
     </header>
     <ul>
       <li>Own methods to receive emails and access the cache in tests</li>
-      <li>TODO: Find out firefox plugin</li>
+      <li><a href="http://manuelbernhardt.github.com/play-selenium-plugin/">Play Selenium Plugin</a> for Firefox</li>
     </ul>
 <pre><code>#{fixture delete:'all', load:'data.yml' /}
 
@@ -759,7 +761,7 @@ public static void time() {
       <li>SSL support built-in</li>
       <li>Serving static files is faster with apache or nginx</li>
       <li>Several environments in one configuration file possible</li>
-      <li>Support for automatic deploying into GAE, Heroku, Stax</li>
+      <li>Support for automatic deploying into GAE, Heroku, Stax, capistrano, dotcloud, cloudbees, playapps, cloudfoundry</li>
     </ul>
   </section>
 </div></div>
@@ -839,6 +841,7 @@ All monitors are automatically added to the status output
       <li>No more Hibernate (ebean as replacement)</li>
       <li>SBT as build system</li>
       <li>Native Akka support</li>
+      <li>Built-in LESS and coffeescript support</li>
     </ul>
   </section>
 </div></div>
@@ -891,6 +894,23 @@ All monitors are automatically added to the status output
     </ul>
   </section>
 </div></div>
+
+
+<div class="slide" id="workshop"><div>
+  <section>
+    <header>
+      <h2>Workshop - Bidding application using WebSockets</h2>
+    </header>
+<pre><code>git clone git://github.com/playframework/play play
+cd play
+git checkout remotes/origin/1.2.x
+cd framework
+ant
+</code></pre>    
+<pre><code>git clone git://github.com/spinscale/play-bidding-sample</code></pre>    
+  </section>
+</div></div>
+
 
 
 <!--
