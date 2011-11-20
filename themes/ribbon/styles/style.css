@@ -172,6 +172,16 @@ BODY {
 		color:#FFF;
 		font-weight:normal;
 		}
+	.slide PRE MARK.green {
+		background:#0C0;
+		color:#FFF;
+		font-weight:normal;
+		}
+	.slide PRE MARK.blue{
+		background:#00C;
+		color:#FFF;
+		font-weight:normal;
+		}
 
 /* Background */
 .slide.bg SECTION {
