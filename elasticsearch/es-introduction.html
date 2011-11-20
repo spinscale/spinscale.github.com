@@ -1,0 +1,316 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+	<title>elasticsearch - Search made easy for web developers</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=1234, user-scalable=no">
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+	<link rel="stylesheet" href="../themes/ribbon/styles/style.css">
+
+	<style>
+body {
+	background-color: #82b64a;
+}
+
+#Cover H3 {
+	color:gray;
+	font-size:35px;
+	padding-top: 0.2em;
+}
+
+</style>
+
+<link rel="stylesheet" href="http://yandex.st/highlightjs/6.0/styles/github.min.css">
+<script src="http://yandex.st/highlightjs/6.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+</head>
+<body class="list">
+	<header class="caption">
+		<h1>elasticsearch - Search made easy for web developers</h1>
+		<p>Alexander Reelsen</p>
+	</header>
+
+<div class="slide" id="Cover"><div>
+	<section style="background-color: white">
+	  <header>
+		<h1>Search made easy for web developers</h1>
+      </header>
+			<div style="text-align : center;">
+			<img src="img/header.png">
+			</div>
+			<div style="text-align : right; padding-top: 2em">
+			Alexander Reelsen<br />
+			@spinscale<br />
+			alexander@reelsen.net<br />
+			</div>
+	</section>
+</div></div>
+
+
+<div class="slide" id="Toc-1"><div>
+  <section>
+    <header>
+      <h2>Search? What the hell?!</h2>
+    </header>
+    <ul>
+      <li>Search? What is so important about search?
+        <ul><li>No search, no google, no bing, no twitter, no amazon, no ebay</li></ul>
+      </li>
+      <li>Requirements for a search engine
+        <ul><li>Finds the "right" stuff</li><li>Scalability? Performance?</li><li><a href="http://www.google.com/commercesearch/">Google commerce search</a>, <a href="http://sphinxsearch.com/">Sphinx</a>, <a href="http://www.searchblox.com/">SearchBlox</a>, <a href="http://lucene.apache.org/solr/">Solr</a>, <a href="http://www.elasticsearch.org">elasticsearch</a></li></ul>
+      </li>
+      <li></li>
+      <li>Elasticsearch as search solution</li>
+      <li>Use cases of elasticsearch @ Lusini.de</li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide" id="about"><div>
+  <section>
+    <header>
+      <h2>About me - Alexander Reelsen</h2>
+    </header>
+    <ul>
+      <li>Studied information systems</li>
+      <li>10 years linux system engineering, converted to software engineering</li>
+      <li>Web framework enthusiast, fed up with complex java environment for simple webapps</li>
+      <li>Other interests: Scaling web architectures, Web 2.0 (nosql, search)</li>
+      <li>Author of <a href="http://www.packtpub.com/play-framework-cookbook/book">Play framework cookbook</a></li>
+      <li>Working at <a href="http://www.lusini.de">Lusini GmbH</a>, building an ecommerce platform</li>
+      <li>Streetball/Basketball</li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide" id="search-is-more-than-text"><div>
+  <section>
+    <header>
+      <h2>Search is more than text search</h2>
+    </header>
+    <ul>
+      <li>Search by text: <code>bmw</code></li>
+      <li>Search by date: <code>21.11.2011</code></li>
+      <li>Search in ranges:
+        <ul>
+          <li><code>from 20 EUR to 30 EUR</code></li>
+          <li><code>from 20.11.2011 to 22.11.2011</code></li>
+        </ul>
+      </li>
+      <li>Faceted search - aggregation of results</li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide" id="own-search-engine"><div>
+  <section>
+    <header>
+      <h2>Why do you need an own search engine?</h2>
+    </header>
+    <ul>
+      <li>Because you can!</li>
+      <li>Your data, your search</li>
+      <li>Customize your search</li>
+      <li>Customize your data</li>
+      <li>Best support and in-sourced know-how</li>
+      <li>No blackbox</li>
+    </ul>
+  </section>
+</div></div>
+
+<!--
+<div class="slide bg" id="play-architecture-diagram"><div style="background : white">
+  <section>
+    <header style="text-align : right">
+      <h2>Play framework architecture</h2>
+    </header>
+    <img src="play-architecture.png" style="height: 100% ; width: 65%">
+  </section>
+</div></div>
+-->
+
+<div class="slide" id="elasticsearch-intro"><div>
+  <section>
+    <header>
+      <h2>elasticsearch - Search for web developers</h2>
+    </header>
+    <ul>
+      <li>Java, based on Apache Lucene</li>
+      <li>Scales out</li>
+      <li>Every interaction can be done via HTTP & JSON
+	    <ul>
+	      <li>Creating/updating/deleting documents into an index</li>
+	      <li>Creating/updating/deleting indexes</li>
+	      <li>Search queries</li>
+	    </ul>
+      </li>
+      <li>References: Mozilla, StumbleUpon, Sony, Infochimps, Assistly</li>
+    </ul>
+  </section>
+</div></div>
+
+
+<div class="slide" id="search-dictionary"><div>
+  <section>
+    <header>
+      <h2>Data representation in JSON</h2>
+    </header>
+<pre style="font-size: smaller"><code class="javascript">{
+	"id": "1",
+	"name" : "MacBook Air",
+	"price": 1099,
+	"descr" : "Some lengthy never-read description", 
+	"attributes" : {
+		"color" : "silver",
+		"display" : 13.3,
+		"ram" : 4
+	}
+}</code></pre>
+  </section>
+</div></div>
+
+<div class="slide" id="es-install"><div>
+  <section>
+    <header>
+      <h2>Installation needs two minutes</h2>
+    </header>
+    <ul>
+      <li>Download<br /><a href="https://github.com/downloads/elasticsearch/elasticsearch/elasticsearch-0.18.2.zip">https://github.com/downloads/elasticsearch/elasticsearch/elasticsearch-0.18.2.zip</a></li>
+      <li>Unzip<br /><code>unzip elasticsearch-0.18.2.zip</code></li>
+      <li>Run<br /><code>elasticsearch/bin/elasticsearch</code></li>
+      <li>Check by connecting with your browser to <a href="http://localhost:9000">http://localhost:9000</a></li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide" id="es-json-query-index-product"><div>
+  <section>
+    <header>
+      <h2>Index your product</h2>
+    </header>
+<pre style="font-size: smaller"><code>curl -X PUT localhost:9200/<mark class="green">products</mark>/<mark class="blue">product</mark>/<mark class="important">1</mark> -d '{
+	<mark>"id": "1"</mark>,
+	"name" : "MacBook Air",
+	"price": 1099,
+	"descr" : "Some lengthy never-read description", 
+	"attributes" : {
+		"color" : "silver",
+		"display" : 13.3,
+		"ram" : 4
+	}
+}'</code>
+ </section>
+</div></div>
+
+
+<div class="slide" id="es-json-query"><div>
+  <section>
+    <header>
+      <h2>JSON as query language - Normal query</h2>
+    </header>
+<code>http://localhost:9200/products/product/_search</code>
+
+    <ul>
+    <li><pre><code class="javascript">{ "query" : { "term" : { "name": "MacBook Air" }}}</code></pre></li>
+	<li><pre><code class="javascript">{ "query" : { "prefix" : { "name": "Mac" }}}</code></pre></li>
+	<li>Documents can also be read via their id: <code>http://localhost:9200/products/product/1</code>
+	</ul>
+Queries can be issued via <a href="http://curl.haxx.se/">curl</a> or via <a href="https://addons.mozilla.org/en-US/firefox/addon/httprequester/">HttpRequester</a>
+  </section>
+</div></div>
+
+
+<div class="slide" id="es-json-query-range"><div>
+  <section>
+    <header>
+      <h2>JSON as query language - Range query</h2>
+    </header>
+	<h1>Useful for price, date and string ranges</h1>
+
+<pre><code class="javascript">{ "query" : { "range" : { 
+	"price" : { "from" : 1000, "to": 2000 }
+} } }</code></pre>
+  </section>
+</div></div>
+
+<div class="slide" id="es-json-query-pagination"><div>
+  <section>
+    <header>
+      <h2>JSON as query language - Pagination &amp; Sorting</h2>
+    </header>
+    <ul>
+      <li>Pagination: <br /><pre><code>{ <mark>from: 0</mark>, <mark>size:10</mark>, 
+  "query" : { "term" : { "name": "MacBook Air" }}}</code></pre></li>
+      <li>Sorting: <br /><pre><code class="javascript">{ <mark>"sort" : { "name" :  { "order": "asc" } }</mark>,
+      "query" : { "term" : { "name": "MacBook Air" }}}</code></pre></li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide" id="es-json-features"><div>
+  <section>
+    <header>
+      <h2>Far more features!</h2>
+    </header>
+    <ul>
+      <li>Faceted queries, sorting, highlighting, filters</li>
+      <li>Mapping/Analyzers</li>
+      <li>Geolocation support</li>
+      <li>Boosting: Applying different weights to documents or fields</li>
+      <li>Custom scripting (this is where your own integration beats out all others)</lI>
+      <li>Rivers: Push/pull data from arbitrary sources</li>
+    </ul>
+  </section>
+</div></div>
+ 
+
+<div class="slide" id="es-lusini"><div>
+  <section>
+    <header>
+      <h2>elasticsearch @ Lusini.de</h2>
+    </header>
+	<h1>Powers product search - over 220.000 documents</h1>
+    <ul>
+      <li>Search by name</li>
+      <li>Search by LUCID</li>
+      <li>Search as you type</li>
+      <li>Facetting (filtering by price, color, size, material, shape, series)</li>
+      <li>Grouping</li>
+    </ul>
+  </section>
+</div></div>
+
+<div class="slide bg" id="screenshot-search-by-name"><div>
+  <section>
+    <img src="img/search-by-name.png">
+  </section>
+</div></div>
+
+<div class="slide bg" id="screenshot-search-by-lucid"><div>
+  <section>
+    <img src="img/search-by-lucid.png">
+  </section>
+</div></div>
+
+<div class="slide shout" id="Demo"><div>
+	<section>
+		<header>
+			<h2><a href="http://www.lusini.de/search/#/herrenhemd">Live Demo</a></h2>
+		</header>
+	</section>
+</div></div>
+
+<div class="slide shout" id="finish"><div>
+  <section>
+    <header>
+      <h2>Questions?</h2>
+    </header>
+  </section>
+</div></div>
+
+<div class="progress"><div></div></div>
+<script src="../scripts/script.js"></script>
+<!-- Co-anchorht © 2010–2011 Vadim Makeev, http://pepelsbey.net/ -->
+</body>
+</html>
