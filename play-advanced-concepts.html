@@ -14,7 +14,7 @@
 	</style>
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
 
-<link rel="stylesheet" href="http://yandex.st/highlightjs/6.0/styles/github.min.css">
+<link rel="stylesheet" href="http://yandex.st/highlightjs/6.0/styles/idea.css">
 <script src="http://yandex.st/highlightjs/6.0/highlight.min.js"></script>
 <script>hljs.initHighlightingOnLoad();</script>
 
@@ -137,7 +137,7 @@
     <header>
       <h2>Example getter/setter creation with javassist</h2>
     </header>
-<pre><code>String code =
+<pre><code class="java">String code =
     "public String getName() { return this.name; }";
 CtMethod getMethod = CtMethod.make(code, ctClass);
 ctClass.addMethod(getMethod);
@@ -409,10 +409,10 @@ LocalVariablesNamesTracer.addVariable("users", users);</code></pre></li>
       <h2>Resources</h2>
     </header>
     <ul>
-      <li><a href="http://www.playframework.org">Playframework</a></li>
-      <li>Twitter: <a href="http://twitter.com/playframework">@playframework</a></li>
-      <li>My presentations at <a href="http://www.slideshare.net/areelsen/">slideshare</a></li>
-      <li>German: Articles from 2009 in kaffeeklatsch magazine (<a href="http://www.bookware.de/kaffeeklatsch/archiv/ KaffeeKlatsch-2009-11.pdf">part 1</a>, <a href="http://www.bookware.de/kaffeeklatsch/archiv/ KaffeeKlatsch-2009-12.pdf">part 2</a>)</li>
+      <li><a href="http://www.playframework.org">Playframework</a> website, <a href="http://twitter.com/playframework">@playframework</a></li>
+      <li><a href="http://www.slideshare.net/areelsen/introduction-playframework">Introductory presentation</a>  at Java User Group Munich in June 2010</li>
+      <li><a href="http://spinscale.github.com/play-introduction.html">Introductory presentation</a> at TNG Technologies in Oct 2011</li>
+      <li><a href="http://spinscale.github.com/play-advanced-concepts.html">A look inside the machine room</a>: Play!ground Presentation at Lunatech in Rotterdam in Sep 2011</li>
       <li><a href="http://www.packtpub.com/play-framework-cookbook/book">Play framework cookbook</a> (example sources on <a href="https://github.com/spinscale/">github</a>)</li>
       <li>Presentation has been done with <a href="https://github.com/pepelsbey/shower">shower</a></li>
     </ul>
