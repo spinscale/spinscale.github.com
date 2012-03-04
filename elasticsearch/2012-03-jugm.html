@@ -155,11 +155,6 @@
 					<section>
 						<h2>Elasticsearch architecture</h2>
 
-					    <img src="img-jugm/es-what-it-looks-like.png" style="border: 0">
-					</section>
-					<section>
-						<h2>Elasticsearch architecture</h2>
-
 						    <img src="img-jugm/es-what-its-more-like.png" style="border: 0">
 					</section>
 					<section>
@@ -277,6 +272,30 @@ index:
 		<pre><code class="javascript">{ "sort" : { "name" :  { "order": "asc" } }, "query" : { "term" : { "name": "MacBook Air" }}}</code></pre>
 		
   </section>
+
+<section>
+      <h2>JSON as query language</h2>
+		<code>http://host:9200/products/product/_search</code>
+		
+<pre><code class="javascript">
+{ "took":206,"timed_out":false,
+"_shards":{"total":1,"successful":1,"failed":0},
+"hits":{ "total":1,"max_score":2.098612,
+  "hits":[ {
+    "_index":"products1","_type":"product","_id":"1",
+    "_score":2.098612, "_source" : {
+      "id": "1",
+      "name" : "MacBook Air",
+      "price": 1099,
+      "descr" : "Some lengthy never-read description", 
+      "attributes" : {
+        "color" : "silver",
+        "display" : 13.3,
+        "ram" : 4
+      }
+}}]}}
+</code></pre>
+</section>
 
   <section>
       <h2>Configuration - Mapping</h2>
