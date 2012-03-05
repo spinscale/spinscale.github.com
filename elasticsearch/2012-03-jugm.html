@@ -183,8 +183,8 @@
   <section>
       <h2>Installation - takes two minutes</h2>
     <ul>
-      <li>Download from github or <a href="http://www.elasticsearch.org">elasticsearch.org</a><br /><a href="https://github.com/downloads/elasticsearch/elasticsearch/elasticsearch-0.19.0.RC2.zip">zip file</a></li>
-      <li>Unzip<br /><code>unzip elasticsearch-0.19.0.RC2.zip</code></li>
+      <li>Download from github or <a href="http://www.elasticsearch.org">elasticsearch.org</a><br /><a href="https://github.com/downloads/elasticsearch/elasticsearch/elasticsearch-0.19.0.zip">zip file</a></li>
+      <li>Unzip<br /><code>unzip elasticsearch-0.19.0.zip</code></li>
       <li>Run<br /><code>elasticsearch/bin/elasticsearch -f</code></li>
       <li>Check by connecting with your browser to <a href="http://localhost:9200">http://localhost:9200</a></li>
     </ul>
@@ -506,7 +506,7 @@ curl -X PUT 'localhost:9200/products/product/2?<mark class="red">percolate=*</ma
       <h2>Plugins</h2>
     <ul>
       <li>Analysis: Smart Chinese, ICU, IK, Mmseg, Hunspell</li>
-      <li>Transport: Memcached, Thrift, ZeroMQ</li>
+      <li>Transport: Memcached, Thrift, ZeroMQ, Servlet</li>
       <li>Scripting: javascript, groovy, python</li>
       <li>Site plugins: BigDesk, Elasticsearch Head</li>
       <li>Misc: Mapper attachments, Hadoop, AWS cloud, Mock Solr, Suggester, PartialUpdate</li>
