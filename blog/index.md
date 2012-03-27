@@ -3,7 +3,7 @@ layout: page
 title: Toying with technology
 tagline: Unimportant views on technology
 ---
-{% include blog/JB/setup %}
+{% include JB/setup %}
 
 ## Posts
 
