@@ -1,0 +1,745 @@
+<!doctype html>  
+<html lang="en">
+	
+	<head>
+		<meta charset="utf-8">
+		
+		<title>Using dropwizard with MongoDB</title>
+
+		<meta name="description" content="Dropwizard - with MongoDB">
+		<meta name="author" content="Alexander Reelsen">
+		
+		<link href='http://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+		
+		<link rel="stylesheet" href="../elasticsearch/reveal.js/css/reset.css">
+		<link rel="stylesheet" href="../elasticsearch/reveal.js/css/main.css">
+
+		<link rel="stylesheet" href="../elasticsearch/reveal.js/lib/zenburn.css">
+	</head>
+	
+	<body>
+		
+		<div id="reveal">
+			
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+				<section>
+					<h3 class="inverted" style="padding-top: 1em">Introduction into Dropwizard using MongoDB</h3>
+					<script>
+						// Delicously hacky. Look away.
+						if( navigator.userAgent.match( /(iPhone|iPad|iPod|Android)/i ) )
+						document.write( '<p style="color: rgba(0,0,0,0.3); text-shadow: none;">('+'Tap to navigate'+')</p>' );
+					</script>
+					
+					<div style="padding-top: 2em">
+					Alexander Reelsen<br />
+					alexander@reelsen.net<br />
+					@spinscale<br />
+					</div>
+				</section>
+				
+				<section>
+					<h2>Agenda</h2>
+				    <ul>
+				      <li>No agenda, dive into code samples...</li>
+				    </ul>
+				</section>
+				
+				<section>
+					<h2>About me - Alexander Reelsen</h2>
+				    <ul>
+				      <li>Studied information systems</li>
+				      <li>10 years linux system engineering, converted to software engineering</li>
+				      <li>Web framework enthusiast, fed up with complex java environment for simple webapps</li>
+				      <li>Other interests: Scaling web architectures, Web 2.0 (nosql, search)</li>
+				      <li>Author of <a href="http://www.packtpub.com/play-framework-cookbook/book">Play framework cookbook</a></li>
+				      <li>Working at <a href="http://www.lusini.de">Lusini GmbH</a>, building a b2b ecommerce platform</li>
+				      <li>Streetball/Basketball</li>
+				    </ul>
+				</section>
+
+				<section>
+					<h2>Why Dropwizard?</h2>
+					<ul>
+					  <li>Library/Framework for creating JSON web services in short time</li>
+					  <li>Simple to understand &amp; debug</li>
+					  <li>Developed with operations in mind (monitoring)</li>
+					  <li>Good <a href="http://dropwizard.codahale.com/">documentation</a></li>
+					  <li>Jetty, Jersey, Jackson, Metrics, Guava, Hibernate validator</li>
+					</ul>
+				</section>
+
+
+				<section>
+					<h2>Why mongo-jackson-wrapper?</h2>
+					<ul>
+					  <li>Check out <a href="http://vznet.github.com/mongo-jackson-mapper/">mongo-jackson-mapper</a> - very simple</li>
+					  <li><a href="http://code.google.com/p/morphia/">Morphia</a> is another good choice due to DAO support</li>
+					  <li>Very simple to put objects in MongoDB</li>
+					  <li>Setting up MongoDB is not detailed here. <br />Download. Install. Run.</li>
+					</ul>
+				</section>
+
+
+				<section>
+					<h2>Setting up pom.xml</h2>
+<pre><code class="xml">
+    &lt;dependencies>
+        &lt;dependency>
+            &lt;groupId>com.yammer.dropwizard&lt;/groupId>
+            &lt;artifactId>dropwizard-core&lt;/artifactId>
+            &lt;version>0.3.1&lt;/version>
+            &lt;scope>compile&lt;/scope>
+        &lt;/dependency>
+        &lt;dependency>
+            &lt;groupId>net.vz.mongodb.jackson&lt;/groupId>
+            &lt;artifactId>mongo-jackson-mapper&lt;/artifactId>
+            &lt;version>1.4.1&lt;/version>
+        &lt;/dependency>
+    &lt;/dependencies>
+
+&lt;!-- Dont forget the shade plugin part from the documentation in your pom.xml! -->
+</code></pre>
+See also: <a href="http://dropwizard.codahale.com/getting-started/#building-fat-jars">Building FAT jars</a>
+				</section>
+
+
+				<section>
+					<h2>Define models</h2>
+					<ul>
+					  <li>Product, which has variants</li>
+					  <li>Product is a container which contains physical products</li>
+					  <li>Product = Cool T-Shirt</li>
+					  <li>Variant 1: blue, XL</li>
+					  <li>Variant 2: red, M</li>
+					</ul>
+				</section>
+
+
+				<section>
+					<h2>Product entity</h2>
+<pre><code class="java">package model;
+
+import java.util.List;
+import javax.validation.Valid;
+import net.vz.mongodb.jackson.Id;
+import net.vz.mongodb.jackson.ObjectId;
+
+public class Product {
+
+    @Id @ObjectId
+    public String id;
+
+    @Valid
+    public ProductData data;
+
+    @Valid
+    public List<ProductData> variants;
+
+}
+</code></pre>
+				</section>
+
+
+
+				<section>
+					<h2>Productdata</h2>
+<pre><code class="java">package model;
+
+import java.util.Map;
+import org.hibernate.validator.constraints.NotEmpty;
+import com.google.common.collect.Maps;
+
+public class ProductData {
+
+    // Acts as an unique identifier
+    @NotEmpty
+    public String lucid;
+    @NotEmpty
+    public String sku;
+    @NotEmpty
+    public String name;
+
+    public Double price;
+
+    public Map<String, String> attributes = Maps.newHashMap();
+}
+</code></pre>
+				</section>
+
+
+
+
+				<section>
+					<h2>Specialties on entities</h2>
+					<ul>
+						<li>Getters and setters omitted only for readibility</li>
+						<li><code>@Id</code> and <code>@ObjectId</code> annotations are <b>not</b> from the mongodb driver</li>
+						<li><code>@NotEmpty</code> is from hibernate validator (JSR 303 : Bean validation)<br /></li>
+						<li>ProductData has no <code>@Id</code> anntotation as it is intended to be used embedded only</li>
+					</ul>
+				</section>
+					
+				<section>
+				 <h2>Configuration via YAML</h2>
+				 <ul>
+				   <li>MongoDB connection parameters</li>
+           <li>Put it into <code>src/main/resources/config.yaml</code></li>
+           <li>Think about default values!</li>
+				 </ul>
+<pre><code class="yaml">
+mongohost: localhost
+mongoport: 27017
+mongodb: mydb
+</code></pre>
+				</section>
+
+				<section>
+				  <h2>Configuration java class</h2>
+<pre><code class="java">package configuration;
+
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+
+import org.codehaus.jackson.annotate.JsonProperty;
+import org.hibernate.validator.constraints.NotEmpty;
+import com.yammer.dropwizard.config.Configuration;
+
+public class ProductConfiguration extends Configuration {
+
+    @JsonProperty @NotEmpty
+    public String mongohost = "localhost";
+
+    @Min(1)
+    @Max(65535)
+    @JsonProperty
+    public int mongoport = 27017;
+
+    @JsonProperty @NotEmpty
+    public String mongodb = "yourdb";
+
+}
+</code></pre>
+				</section>
+
+
+<section>
+  <h2>Creating a service</h2>
+<pre><code class="java">package service;
+// ...imports omitted...
+
+public class ProductService extends Service<ProductConfiguration> {
+
+    public static void main(String[] args) throws Exception {
+        new ProductService().run(new String[]{"server", "src/main/resources/config.yaml"});
+    }
+
+    private ProductService() {
+        super("app");
+    }
+
+    @Override
+    protected void initialize(ProductConfiguration configuration, Environment environment) throws Exception {
+        Mongo mongo = new Mongo(configuration.mongohost, configuration.mongoport);
+        DB db = mongo.getDB(configuration.mongodb);
+        JacksonDBCollection&lt;Product, String> products =
+            JacksonDBCollection.wrap(db.getCollection("products"), Product.class, String.class);
+
+        MongoManaged mongoManaged = new MongoManaged(mongo);
+        environment.manage(mongoManaged);
+
+        environment.addHealthCheck(new MongoHealthCheck(mongo));
+
+        environment.addResource(new CreateProductResource(products));
+        environment.addResource(new ProductResource(products));
+        environment.addResource(new RemoveProductVariantResource(products));
+    }
+}
+</code></pre>
+</section>
+
+<section>
+  <h2>Creating a service</h2>
+  <ul>
+    <li><code>initialize()</code> is run on startup by dropwizard</li>
+    <li>A new <code>Mongo</code> and <code>DB</code> object is created from the configuration</li>
+    <li>Mongo collection is wrapped into a mongo jackson collection</li>
+    <li>These wrapped objects are handed over to resources</li>
+    <li>A health check is added</li>
+    <li>The <code>main()</code> method makes it easy to start via IDE</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Managed mongo instance</h2>
+  <ul>
+    <li>Managed instances are simple interfaces with a <code>start()</code> and <code>stop()</code> method</li>
+    <li>Allows to manage resources on application start and stop</li>
+    <li><code>start()</code> was not implemented as the resources need an already initialized connection</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Managed mongo instance</h2>
+<pre><code class="java">package service;
+
+import com.mongodb.Mongo;
+import com.yammer.dropwizard.lifecycle.Managed;
+
+public class MongoManaged implements Managed {
+
+    private Mongo m;
+
+    public MongoManaged(Mongo m) {
+        this.m = m;
+    }
+
+    public void start() throws Exception {
+    }
+
+    public void stop() throws Exception {
+        m.close();
+    }
+}
+</code></pre>
+</section>
+
+<section>
+  <h2>Mongo health check</h2>
+  <ul>
+    <li>Health checks are a wonderful operations features</li>
+    <li>Allows to check for health inside of your application</li>
+    <li>This sample checks for an existing mongo db connection (from your application, not from your icinga)</li>
+  </ul>
+</section>
+
+
+<section>
+  <h2>Mongo health check</h2>
+<pre><code class="java">package health;
+
+import com.mongodb.Mongo;
+import com.yammer.metrics.core.HealthCheck;
+
+public class MongoHealthCheck extends HealthCheck {
+
+    private Mongo mongo;
+
+    public MongoHealthCheck(Mongo mongo) {
+        super("MongoHealthCheck");
+        this.mongo = mongo;
+    }
+
+    @Override
+    protected Result check() throws Exception {
+        mongo.getDatabaseNames();
+        return Result.healthy();
+    }
+
+}
+</code></pre>
+</section>
+
+
+<section>
+  <h2>Helping code</h2>
+  <ul>
+    <li>Request lifecycle: Get a request with an ID</li>
+    <li>Request lifecycle: Search for id in persistence store</li>
+    <li>Request lifecycle: Execute action on id</li>
+    <li>Request lifecycle: Return 404 if entity with id not found</li>
+    <li style="padding-top: 1em">Having helpers for this is nice</li>
+    <li>Playframework has: <code>notFoundIfNull(Object)</code></li>
+  </ul>
+</section>
+
+<section>
+  <h2>Helpers</h2>
+<pre><code class="java">package utils;
+
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response.Status;
+
+import net.vz.mongodb.jackson.DBCursor;
+
+public class ResourceHelper {
+
+    public static void notFoundIfNull(DBCursor&lt;?> cursor) {
+        if (!cursor.hasNext()) {
+            throw new WebApplicationException(Status.NOT_FOUND);
+        }
+    }
+
+    public static void notFoundIfNull(Object obj) {
+        errorIfNull(obj, Status.NOT_FOUND);
+    }
+
+    public static void errorIfNull(Object obj, Status status) {
+        if (obj == null) {
+            throw new WebApplicationException(status);
+        }
+    }
+}</code></pre>
+</section>
+
+
+<section>
+  <h2>Resources</h2>
+  <ul>
+    <li>Creating a product only works if it does not exist already</li>
+    <li>Removing products is a bit hacky by checking if the count of removed products is one</li>
+    <li>Removing product variants uses some google guava magic, might be possible via MongoDB as well</li>
+  </ul>
+</section>
+
+
+<section>
+  <h2>Create a product</h2>
+<pre><code class="java">package resources.product;
+// ... imports omitted ...
+
+@Path("/product/")
+public class CreateProductResource {
+
+    private JacksonDBCollection&lt;Product, String> products;
+
+    public CreateProductResource(JacksonDBCollection&lt;Product, String> products) {
+        this.products = products;
+    }
+
+    @PUT
+    public Response createProduct(@Valid Product product) {
+        DBCursor&lt;Product> cursor = products.find().is("data.lucid", product.data.lucid);
+        if (cursor.hasNext()) {
+            return Response.status(Status.CONFLICT).build();
+        }
+
+        products.save(product);
+
+        return Response.noContent().build();
+    }
+}</code></pre>
+</section>
+
+
+<section>
+  <h2>Getting &amp; deleting a product</h2>
+<pre><code class="java">package resources.product;
+import static utils.ResourceHelper.*;
+// ... other imports omitted ...
+
+@Path("/product/{id}")
+public class ProductResource {
+
+    private JacksonDBCollection&lt;Product, String&gt; products;
+
+    public ProductResource(JacksonDBCollection&lt;Product, String&gt; products) {
+        this.products = products;
+    }
+
+    @GET
+    public Product getProduct(@PathParam("id") String id) {
+        DBCursor&lt;Product&gt; cursor = products.find().is("data.lucid", id);
+        notFoundIfNull(cursor);
+
+        return cursor.next();
+    }
+
+    @DELETE
+    public Response removeProduct(@PathParam("id") String id) {
+        DBObject query = new BasicDBObject("data.lucid", id);
+        WriteResult&lt;Product,String&gt; result = products.remove(query);
+        int affectedObjects = result.getWriteResult().getN();
+
+        if (affectedObjects != 1) {
+            return Response.serverError().build();
+        }
+        return Response.noContent().build();
+    }
+}</code></pre>
+</section>
+
+
+<section>
+  <h2>Removing product variants</h2>
+<pre><code class="java">@Path("/product/{id}/{variant}")
+public class RemoveProductVariantResource {
+
+    private JacksonDBCollection&lt;Product, String&gt; products;
+
+    public RemoveProductVariantResource(JacksonDBCollection&lt;Product, String> products) {
+        this.products = products;
+    }
+
+    @DELETE
+    public Response removeVariant(@PathParam("id") String id, @PathParam("variant") String variant) {
+        DBCursor&lt;Product> cursor = products.find().in("data.lucid", id);
+        notFoundIfNull(cursor);
+
+        Product product = cursor.next();
+
+        int size = product.variants.size();
+        product.variants = removeVariantByLucid(product, variant);
+        if (product.variants.size() == size) {
+            return Response.notModified().build();
+        }
+
+        products.save(product);
+
+        return Response.noContent().build();
+    }
+
+</code></pre>
+</section>
+
+
+<section>
+  <h2>Removing product variants</h2>
+<pre><code class="java">
+    public List&lt;ProductData> removeVariantByLucid(Product product, String lucid) {
+        Iterable&lt;ProductData> iterables = Iterables.filter(product.variants,
+            not(new MatchesLucidPredicate(lucid)));
+        return Lists.newArrayList(iterables);
+    }
+
+    private static final class MatchesLucidPredicate implements Predicate&lt;ProductData> {
+        private String lucid;
+
+        public MatchesLucidPredicate(String lucid) {
+            this.lucid = lucid;
+        }
+        public boolean apply(ProductData input) {
+            return lucid.equals(input.lucid);
+        }
+    }
+}
+</code></pre>
+</section>
+
+
+<section>
+  <h2>Using curl for testing</h2>
+<pre><code class="javascript">
+    curl -X PUT localhost:8080/product/ -v --header "Content-Type: application/json" -d' {
+    "data" : {
+        "sku" : "sku123",
+        "lucid": "lucid123",
+        "name": "T-Shirt foo"
+    },
+    "variants" : [
+        {
+            "sku" : "sku1",
+            "lucid": "lucid1",
+            "name": "Great variant product",
+            "price" : 20.0,
+            "attributes" : { "color": "yellow", "material" : "wool", "size": "L" }
+        },
+        {
+            "sku" : "sku2",
+            "lucid": "lucid2",
+            "name": "Great variant product 2",
+            "price" : 30.0,
+            "attributes" : { "color": "green", "material" : "wool", "size": "M" }
+        }
+    ]
+}'</code></pre>
+Returns 204
+</section>
+
+
+<section>
+  <h2>Issuing other calls</h2>
+  <ul>
+    <li>Getting the product (and prettyprinting it via python)
+      <pre><code>curl -s localhost:8080/product/lucid123  --header "Content-Type: application/json" | python -mjson.tool</code></pre>
+    </li>
+
+    <li>Deleting a variant
+      <pre><code>curl -X DELETE localhost:8080/product/lucid123/lucid2 -v</code></pre>
+    </li>
+
+    <li>Deleting a complete product
+      <pre><code>curl -X DELETE localhost:8080/product/lucid123 -v</code></pre>
+    </li>
+  </ul>
+</section>
+
+
+<section>
+  <h2>Checking health</h2>
+  Go to <a href="http://localhost:8081/healthcheck">http://localhost:8081/healthcheck</a>
+  <ul>
+    <li>Good case:
+      <pre><code>    * MongoHealthCheck: OK
+    * deadlocks: OK</pre></code>
+    </li>
+
+    <li>Now stop MongoDB and retry
+      <pre><code>    ! MongoHealthCheck: ERROR
+    * deadlocks: OK</pre></code>
+     </li>
+  </ul>
+</section>
+
+
+
+<section>
+  <h2>Improvements - configuration</h2>
+<ul>
+<li>
+<a href="http://dropwizard.codahale.com/manual/core/#configuration">Nested configuration</a>
+<pre><code class="yaml">mongo:
+  host: localhost
+  port: 27017
+  db: mydb</code></pre>
+</li>
+<li>Caching via <code>@CacheControl</code> annotation
+<pre><code class="java">@CacheControl(maxAge = 6, maxAgeUnit = TimeUnit.HOURS)</code></pre>
+</li>
+<li>Authentication <a href="http://dropwizard.codahale.com/manual/auth/">is easy</a>. OAuth and Basic Auth ootb
+<pre><code class="java">@GET
+public SecretPlan getSecretPlan(@Auth User user) {
+    return dao.findPlanForUser(user);
+}
+</code></pre>
+</li>
+</ul>
+</section>
+
+<section>
+  <h2>Metrics</h2>
+  <ul>
+    <li>Annotate every resource method with <code>@Timed</code>, <code>@Metered</code> or <code>@ExceptionMetered</code></li>
+    <li>See the <a href="http://localhost:8081/metrics?pretty=true">metrics page</a></li>
+    <li>Thread dump available under <a href="http://localhost:8081/threads">/threads</a>
+  </ul>
+</section>
+  
+
+<section>
+  <h2>More features</h2>
+  <ul>
+    <li><a href="http://dropwizard.codahale.com/manual/core/#tasks">Tasks</a>: Single actions which can be triggered via HTTP</li>
+    <li><a href="http://dropwizard.codahale.com/manual/scala/">Scala support</a></li>
+    <li><a href="http://dropwizard.codahale.com/manual/views/">Templating via FreeMarker</a></li>
+    <li><a href="xhttp://dropwizard.codahale.com/manual/db/">Database integration</a> via JDBI, a nice layer on top of JDBC</li>
+    <li><a href="http://dropwizard.codahale.com/manual/core/#metrics">Metrics</a>, self written cool metrics libarary, can be checked via <a href="http://localhost:8081/metrics?pretty=true">port 8081</a></li>
+    <li>Implement own JSON de-/serializers</li>
+    <li>Streaming is supported, implement <code>StreamingOutput</code></li>
+  </ul>
+</section>
+
+
+<section>
+  <h2>Open questions &amp; wishlist</h2>
+  <ul>
+    <li>Providing XML APIs, maybe via <a href="https://github.com/FasterXML/jackson-module-jaxb-annotations">jackson databind</a> and own <code>MessageBodyWriter</code> and <code>MessageBodyReader</code></li>
+    <li>Live code reloading (no state in the server makes this possible)</li>
+    <li>I hate freemarker, it is just not web-dev friendly</li>
+    <!-- <li>Using maven purely for dependency management is ok, otherwise it is from hell</li> -->
+    <li>Using MongoDB completely with a managed instance, haven't figured that one out yet</li>
+  </ul>
+</section>
+    
+
+  <section>
+      <h2>Thanks for listening!</h2>
+      <h3>Questions?</h3>
+
+     <div  style="padding-top: 1em">
+     Slides available at<br />
+     <b><a href="http://spinscale.github.com/" style="font-size: bigger">http://spinscale.github.com/</a></b>
+     </div>
+     
+     <h5 style="padding-top: 2em">alexander@reelsen.net</h5>
+     <h5>@spinscale</h5>
+  </section>
+
+  <section>
+      <h2>Documentation &amp; Credits</h2>
+      
+      <ul>
+        <li><a href="http://dropwizard.codahale.com">Dropwizard</a></li>
+      	<li style="padding-top: 1em">Presentation done with <a href="https://github.com/hakimel/reveal.js">reveal.js</a></li>
+      	<li>Cool zooming done with <a href="https://github.com/hakimel/zoom.js">zoom.js</a></li>
+      </ul>
+      
+  </section>
+
+			</div>
+
+			<!-- The navigational controls UI -->
+			<aside class="controls">
+				<a class="left" href="#">&#x25C4;</a>
+				<a class="right" href="#">&#x25BA;</a>
+				<a class="up" href="#">&#x25B2;</a>
+				<a class="down" href="#">&#x25BC;</a>
+			</aside>
+
+			<!-- Displays presentation progress, max value changes via JS to reflect # of slides -->
+			<div class="progress"><span></span></div>
+			
+		</div>
+		
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+		<script src="../elasticsearch/reveal.js/js/reveal.js"></script>
+		<script src="../elasticsearch/reveal.js/lib/highlight.js"></script>
+		<script src="../elasticsearch/zoom.js/js/zoom.js"></script>
+		<script>
+		$(document).ready(function() {
+			$('pre').click(function(event) {
+				event.preventDefault();
+				zoom.in( { element: event.target } );
+//				updateProgress()
+			})
+			$('img').click(function(event) {
+				event.preventDefault();
+				zoom.in( { element: event.target } );
+//				updateProgress();
+			})
+//			$(document).keypress(updateProgress)
+		})
+		function updateProgress() {
+			var slides = $("#reveal .slides > section")
+			var currentSlide = $("#reveal .slides .present")
+			var currentPosition = $(slides).index(currentSlide)
+			// dom.progressbar.style.width = ( indexh / ( document.querySelectorAll( HORIZONTAL_SLIDES_SELECTOR ).length - 1 ) ) * window.innerWidth + 'px';
+			console.log(" GOT " + slides.length + " pos " + currentPosition + " and innerWidth " + window.innerWidth);
+			$(".progress span").css("width", (currentPosition / (slides.length - 1) * window.innerWidth) + 'px' )
+		}
+		</script>
+		<script>
+			// Parse the query string into a key/value object
+			var query = {};
+			location.search.replace( /[A-Z0-9]+?=(\w*)/gi, function(a) {
+				query[ a.split( '=' ).shift() ] = a.split( '=' ).pop();
+			} );
+
+			Reveal.initialize({
+				// Display controls in the bottom right corner
+				controls: true,
+
+				// Display a presentation progress bar
+				progress: false,
+
+				// If true; each slide will be pushed to the browser history
+				history: true,
+
+				// Flags if mouse wheel navigation should be enabled
+				mouseWheel: true,
+
+				// Apply a 3D roll to links on hover
+				rollingLinks: true,
+
+				// UI style
+				theme: query.theme || 'default', // default/neon
+
+				// Transition style
+				transition: query.transition || 'default' // default/cube/page/concave/linear(2d)
+			});
+
+			hljs.initHighlightingOnLoad();
+		</script>
+
+	</body>
+</html>
