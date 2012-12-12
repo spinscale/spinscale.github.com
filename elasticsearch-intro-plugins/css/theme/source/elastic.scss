@@ -1,0 +1,81 @@
+/**
+ * Elasticsearch theme for reveal.js.
+ *
+ * by Alexander Reelsen
+ */
+
+// Default mixins and settings -----------------
+@import "../template/mixins";
+@import "../template/settings";
+// ---------------------------------------------
+
+// Override theme settings (see ../template/settings.scss)
+//$mainFont: 'Georgia', serif;
+$mainFont: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+$mainColor: black;
+$headingColor: #3E3E3E;
+//$headingTextShadow: none;
+$linkColor: #666;
+$linkColorHover: darken( $linkColor, 80% );
+$selectionBackgroundColor: black;
+//$selectionBackgroundColor: rgba(79, 64, 28, 0.99);
+//$heading1TextShadow: 0 1px 0 lightgray, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 5px 0 #aaa, 0 6px 1px rgba(0,0,0,.1), 0 0 5px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 5px rgba(0,0,0,.2), 0 5px 10px rgba(0,0,0,.25), 0 20px 20px rgba(0,0,0,.15);
+
+// Background generator
+@mixin bodyBackground() {
+        @include radial-gradient( rgba(130,182,74,1), rgba(176,219,129,1) );
+        //@include radial-gradient( rgba(130,182,74,1), rgba(84,129,37,1) );
+        //@include radial-gradient( rgba(130,182,74,1), rgba(165,199,129,1) );
+        //@include radial-gradient( rgba(130,182,74,1), rgba(143,181,101,1) );
+        //@include radial-gradient( rgba(165,199,129,1), rgba(130,182,74,1) );
+}
+
+
+
+// Theme template ------------------------------
+@import "../template/theme";
+// ---------------------------------------------
+
+
+.reveal .roll span:after {
+        color: #2E2E2E;
+        background: #82B64A;
+}
+
+@mixin roundcorners($radius) {
+  -moz-border-radius: $radius;    // firefox
+  -webkit-border-radius: $radius; // safari/chrome
+  border-radius: $radius;         // CSS3, works in IE9
+}
+
+@mixin boxshadow() {
+  box-shadow: rgb(100, 127, 71) 5px 5px 20px 0px;
+}
+
+.reveal section img {
+  border: 2px solid gray;
+  @include roundcorners(10px);
+  @include boxshadow()
+}
+
+.reveal section.logo img {
+  border: none;
+  box-shadow: none;
+  border-radius: 0px;
+  margin: 0;
+  background-color: transparent;
+}
+
+.green {
+  @include roundcorners(4px);
+  background: #82B64A;
+}
+
+.reveal pre code {
+  font-family: monospace;
+  color: black;
+  background-color: rgb(192, 218, 164);
+  @include roundcorners(10px);
+  @include boxshadow()
+}

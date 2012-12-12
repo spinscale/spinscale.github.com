@@ -1,0 +1,1152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+
+    <title>Elasticsearch - A look under the hood</title>
+
+    <meta name="description" content="Checking out how elasticsearch works internally">
+    <meta name="author" content="Alexander Reelsen">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <link rel="stylesheet" href="css/reveal.min.css">
+    <link rel="stylesheet" href="css/theme/elastic.css" id="theme">
+
+    <!-- For syntax highlighting -->
+    <link rel="stylesheet" href="lib/css/github.css">
+
+    <!-- If the query includes 'print-pdf', use the PDF print sheet -->
+    <script>
+      document.write( '<link rel="stylesheet" href="css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
+    </script>
+</head>
+
+<body>
+
+  <div class="reveal">
+
+    <!-- Any section element inside of this container is displayed as a slide -->
+    <div class="slides">
+
+      <section class="logo">
+        <img src="images/header.png">
+        <h4 style="padding: 1em 0em">Pluggable architecture under the hood</h4>
+        <div style"font-size: smaller">
+          <span class="fragment fade-in green"><code>Not affiliated with elasticsearch.org or elasticsearch.com</code></span>
+        </div>
+        <div style="padding-top: 1em">
+          <small><a href="http://spinscale.github.com">Alexander Reelsen</a> / <a href="http://twitter.com/spinscale">@spinscale</a></small>
+        </div>
+      </section>
+
+      <section>
+        <code>~# whoami</code>
+        <pre><code class="no-highlight">~# whoami
+
+Alexander Reelsen, almost 30, random developer
+
+Likes: Elasticsearch, dropwizard, simple java web frameworks
+Likes: Document stores, scaling web architectures
+
+Wrote: <a href="http://www.packtpub.com/play-framework-cookbook/book">Playframework cookbook</a>
+
+Day job: Software Engineer @ <a href="http://www.lusini.de">Lusini.de</a>
+
+Sports: Basketball, Badminton
+        </code></pre>
+      </section>
+
+     <section>
+        <h2>Agenda</h2>
+        <p>
+          <ul>
+            <li>What is so important about search?</li>
+            <li>Elasticsearch high level overview</li>
+            <li>Configuration, Mapping &amp; Analyzers</li>
+            <li>Sharding, Replication</li>
+            <li>Querying, Facetting &amp; Percolation</li>
+            <li>Plugins</li>
+          </ul>
+        </p>
+      </section>
+
+       <section>
+        <h2>Agenda</h2>
+        <p>
+        Walking through the <b><a href="https://github.com/spinscale/elasticsearch-suggest-plugin">FST suggester plugin</a></b>
+        </p>
+        <ul>
+          <li>Plugin setup, request workflow</li>
+          <li>REST endpoint</li>
+          <li>Client integration</li>
+          <li>Shardservice, Node Service</li>
+          <li>Refreshing in-memory structures</li>
+          <li>Lifecycle listeners</li>
+          <li>Testing, Plugin assembly</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Agenda</h2>
+        <h3>Implementing own plugins</h3>
+        <p>
+          <ul>
+            <li>Facets</li>
+            <li>Rivers: JSON streaming river</li>
+            <li>Analyzers: Morphologic analyzer</li>
+            <li>Other plugins, drivers</li>
+          </ul>
+        </p>
+      </section>
+
+
+<section>
+      <section>
+        <h2>Search is hard</h2>
+        <div>
+        <span class="fragment fade-in"><i>Functional requirements</i></span>
+        <br>
+        Find the right things (effectivity)
+        </div>
+        <div style="padding-top: 1em">
+        <span class="fragment fade-in"><i>Non-functional requirements</i></span>
+        </div>
+        Find the things right (efficiency)
+        <h4 class="fragment fade-in" style="padding-top: 1em">No efficiency without effectivity</h4>
+      </section>
+
+      <section>
+        <h2>Term search</h2>
+        <img src="images/search-term.png">
+      </section>
+
+      <section>
+        <h2>Id search</h2>
+        <img src="images/search-id.png">
+      </section>
+
+      <section>
+        <h2>Search by color</h2>
+        <img src="images/search-term-color.png">
+      </section>
+
+      <section>
+        <h2>Search by brand</h2>
+        <img src="images/search-brand.png">
+      </section>
+
+      <section>
+        <h2>Suggestions</h2>
+        <img src="images/search-suggestions.png">
+      </section>
+
+      <section>
+        <h2>Corrections</h2>
+        <img src="images/search-correction.png">
+      </section>
+
+</section>
+
+
+       <section>
+        <h2>Prerequisites</h2>
+        <p>
+          <ul>
+            <li>Basic elasticsearch experience</li>
+            <li>Java experience</li>
+            <li>Plus: <a href="http://lucene.apache.org/core/">Lucene</a>, <a href="http://code.google.com/p/google-guice/">Guice</a>, <a href="http://code.google.com/p/guava-libraries/">Guava</a>, <a href="http://jackson.codehaus.org/">Jackson</a></li>
+            <li>Plus: HTTP, REST, JSON</li>
+          </ul>
+        </p>
+      </section>
+
+
+       <section>
+        <h3>Elasticsearch - birds eye view</h3>
+        <p>
+          <ul>
+            <li>Schema-free, REST and JSON based, document store <span class="fragment fade-in"><b>(having extra-ordinary search capabilites)</b></span></li>
+            <li>Multi-tenancy, distributed <span class="fragment fade-in"><b>(sharding, replication)</b></span></li>
+            <li>Facetting, highlighting, custom scripting &amp; scoring</li>
+            <li>Language specific drivers</li>
+            <li>Highly extensible via plugins</li>
+            <li>Zero configuration</li>
+          </ul>
+        </p>
+      </section>
+
+
+      <section>
+        <section>
+        <h3>Zero configuration - I kid U not!</h3>
+<pre><code class="no-highlight">~# wget --no-check-certificate https://github.com/downloads/elasticsearch/elasticsearch/elasticsearch-0.19.11.zip
+
+~# unzip elasticsearch-0.19.11.zip
+
+~# cd elasticsearch-0.19.11
+
+~# bin/elasticsearch -f
+</code></pre>
+<pre><code class="javascript">~# curl -X PUT http://localhost:9200/products/product/1 -d '{ "name" : "high quality search engine" }'
+
+{"ok":true,"_index":"products","_type":"product","_id":"1","_version":1}
+</code></pre>
+      </section>
+
+
+      <section>
+        <h3>Zero configuration - I kid U not!</h3>
+<pre><code class="javascript">~# curl -X POST http://localhost:9200/products/product/_search?pretty=1 -d '{ "query" : { "term" : { "name" : "search" }} }'
+
+{
+  "took" : 2, "timed_out" : false,
+  "_shards" : {
+    "total" : 5, "successful" : 5, "failed" : 0
+  },
+  "hits" : {
+    "total" : 1, "max_score" : 0.15342641,
+    "hits" : [ {
+      "_index" : "products", "_type" : "product", "_id" : "1",
+      "_score" : 0.15342641, "_source" : { "name" : "high quality search engine" }
+    } ]
+  }
+}
+</code></pre>
+      </section>
+    </section>
+
+<section>
+      <section>
+        <h2>Configuration</h2>
+        <p>
+          <ul>
+            <li><code>config/elasticsearch.json</code> or <code>config/elasticsearch.yml</code></li>
+           <li>Application-wide settings (zen discovery, available <a href="http://www.elasticsearch.org/guide/reference/index-modules/analysis/">analyzers</a>)</li>
+           <li>Index default configurations (number of shards)</li>
+           <li>Seperate logging file: config/logging.yml (simplified log4)</li>
+          </ul>
+        </p>
+      </section>
+      <section>
+        <h2>Configuration sample</h2>
+      <pre><code>discovery.zen.multicast.enabled: false
+
+http:
+  max_content_length: 100000
+
+index:
+  number_of_shards: 1
+
+  analysis:
+    analyzer:
+      default:
+        type: standard
+
+      lowercase_analyzer:
+        type: custom
+        tokenizer: standard
+        filter: [standard, lowercase]
+</code></pre>
+      </section>
+</section>
+
+<section>
+      <section>
+        <h2>Mapping</h2>
+        <p>
+          <ul>
+            <li>JSON data is parsed on indexing</li>
+            <li>Mapping is done on first field indexing</li>
+            <li>Inferred if not configured <b>(dangerous!)</b></li>
+            <li>Types: float, long, boolean, date (+formatting), object, nested</li>
+            <li>String type can have arbitrary analyzers</li>
+            <li>Fields can be split up in more fields</li>
+          </ul>
+        </p>
+      </section>
+      <section>
+        <h2>Sample mapping</h2>
+<pre><code style="font-size: smaller">{
+  "product": {
+    "properties": {
+      "ProductId":      { "type": "string", "index": "not_analyzed" },
+      "ProductEnabled": { "type": "boolean" },
+      "PiecesIncluded": { "type": "long" },
+      "Price":          { "type": "float" },
+      "LastModified": { "type": "date", "format": "yyyy-MM-dd HH:mm:ss.SSS" },
+
+      "ProductName" : {
+        "type" : "multi_field",
+        "include_in_all" : true,
+        "fields" : {
+          "ProductName": { "type": "string", "index": "not_analyzed" },
+          "lowercase": { "type": "string", "analyzer": "lowercase_analyzer" },
+          "suggest" :  { "type": "string", "analyzer": "suggest_analyzer" }
+        }
+      }
+    }
+  }
+}</code></pre>
+      </section>
+</section>
+
+      <section>
+        <h2>Analyzers</h2>
+        <p>
+    <ul>
+      <li>An <a href="http://www.elasticsearch.org/guide/reference/index-modules/analysis/">analyzer</a> consists of a tokenizer and an arbitrary amount of filters</li>
+      <li>Example: </li>
+      <pre><code>suggest_analyzer:
+  type: custom
+  tokenizer: whitespace
+  filter: [standard, lowercase, shingle]</pre></code>
+      <li>Stripping html code: <pre><code>char_filter: html_strip</code></pre></li>
+    </ul>
+        </p>
+      </section>
+
+
+      <section>
+        <h3>Indices - birds eye view</h3>
+        <p>
+          <ul>
+            <li>Dataset ready to execute searches in</li>
+            <li>An index consists of arbitrary amount of shards</li>
+            <li>An index can span over arbitrary amount of nodes</li>
+            <li>One shard is mapped to one lucene index</li>
+          </ul>
+        </p>
+      </section>
+
+
+      <section>
+        <section>
+          <h2>Sharding</h2>
+          <pre><code class="javascript">~# curl -X PUT localhost:9200/products -d '{ "settings" : { "index" : { "number_of_shards" : "5", "number_of_replicas" : "0" } } }'</code></pre>
+          <img src="images/cluster-5shards-no-replication.png" />
+        </section>
+        <section>
+          <h2>Replication</h2>
+          <pre><code class="javascript">~# curl -X PUT localhost:9200/products -d '{ "settings" : { "index" : { "number_of_shards" : "1", "number_of_replicas" : "1" } } }'</code></pre>
+          <img src="images/cluster-1shard-2replicas.png" />
+        </section>
+        <section>
+          <h2>Sharding & Replication</h2>
+          <pre><code class="javascript">~# curl -X PUT localhost:9200/products -d '{ "settings" : { "index" : { "number_of_shards" : "5", "number_of_replicas" : "1" } } }'</code></pre>
+          <img src="images/cluster-5shards-2replicas.png" />
+        </section>
+      </section>
+
+      
+<section>
+  <section>
+    <h2>Querying</h2>
+    <ul>
+      <li><a href="http://www.elasticsearch.org/guide/reference/api/search/index.html">Search</a>/<a href="http://www.elasticsearch.org/guide/reference/api/count.html">Count</a> queries (term query, prefix query, id, fuzzy...)</li>
+      <li><a href="http://www.elasticsearch.org/blog/2010/08/16/geo_location_and_search.html">Geo-based queries</a>, <a href="http://www.elasticsearch.org/guide/reference/mapping/ttl-field.html">TTL</a></li>
+      <li><a href="http://www.elasticsearch.org/guide/reference/query-dsl/mlt-query.html">More like this</a>, <a href="http://www.elasticsearch.org/guide/reference/api/search/highlighting.html">Highlighting</a></li>
+      <li><a href="http://www.elasticsearch.org/guide/reference/api/search/facets/index.html">Facetting</a>, <a href="http://www.elasticsearch.org/guide/reference/api/percolate.html">Percolation</a>, <a href="http://www.elasticsearch.org/guide/reference/modules/scripting.html">Scripting</a></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Search - Facetting</h2>
+    <ul>
+      <li>Facetting adds aggregated information to a standard search query</li>
+      <li><a href="http://www.elasticsearch.org/guide/reference/api/search/facets/terms-facet.html">Term</a>: Group results by a term</li>
+      <li><a href="http://www.elasticsearch.org/guide/reference/api/search/facets/range-facet.html">Range</a>: Group by price or date ranges</li>
+      <li><a href="http://www.elasticsearch.org/guide/reference/api/search/facets/histogram-facet.html">Histogram</a>: Group results in equally sized buckets, also as <a href="http://www.elasticsearch.org/guide/reference/api/search/facets/date-histogram-facet.html">date histogram</a></li>
+      <li><a href="http://www.elasticsearch.org/guide/reference/api/search/facets/statistical-facet.html">Statistical</a>: Include statistical data like min, max, sum, avg &amp; some more</li>
+      <li><a href="http://www.elasticsearch.org/guide/reference/api/search/facets/geo-distance-facet.html">Geo distance</a>: Group results around a coordinate</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Search - Facetting</h2>
+    <img src="images/facets-1.png">
+    <img src="images/facets-2.png">
+    <img src="images/facets-3.png">
+  </section>
+
+  <section>
+    <h2>Search - Scripting</h2>
+    <h4>This is where your own integration beats all others</h4>
+    <ul>
+      <li>Score down all your products without an image</li>
+      <li>Score up products by an attribute like its product quality or stock</li>
+      <li>Change score depending on the age of the product (score higher if auction ends today)</li>
+      <li>Apply math operations on fields to change score</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Search API - Percolation</h2>
+    <h3>Implement a price agent for free!</h3>
+    <pre><code>curl -X PUT localhost:9200/_percolator/products/pricecheck -d '{
+"query" : { 
+  "bool" : {
+    "must" : { "term" : { "name" : "MacBook Air" } }, 
+    "must" : { "range" : { "price" : { "from" : 200, "to" : 999 } } }
+    }
+  }
+}'
+{"ok":true,"_index":"_percolator","_type":"products","_id":"pricecheck","_version":1}
+</code></pre>    
+  </section>
+
+  <section>
+    <h2>Search API - Percolation</h2>
+<pre><code>curl -X PUT 'localhost:9200/products/product/1?<mark>percolate=*</mark>' -d '{ "price": 1000, "name" : "MacBook Air" }'
+{"ok":true,"_index":"products","_type":"product","_id":"1","_version":1,<mark>"matches":[ ]</mark>}
+
+curl -X PUT 'localhost:9200/products/product/2?<mark>percolate=*</mark>' -d '{ "price": 999, "name" : "MacBook Air" }'
+{"ok":true,"_index":"products","_type":"product","_id":"2","_version":1,<mark>"matches":["pricecheck"]</mark>}
+</code></pre>
+  </section>
+</section>
+
+
+      
+      <section>
+        <h2>Executing a query</h2>
+        <pre><code>Settings settings = ImmutableSettings.settingsBuilder().put("node.client", true).build();
+
+InetSocketTransportAddress address = new InetSocketTransportAddress("localhost", 9300);
+
+TransportClient client = new TransportClient(settings).addTransportAddress(address);
+
+SearchRequest searchRequest = new SearchRequest("products");
+searchRequest.source(new SearchSourceBuilder(termQuery("field", "search")))
+searchRequest.types("product")
+
+ActionFuture&lt;SearchResponse> response = client.searchRequest(searchRequest);
+</code></pre>
+        </p>
+      </section>
+
+      <section>
+        <h2>Request builders</h2>
+        <pre><code>SearchRequestBuilder builder = new SearchRequestBuilder(client)
+    .setIndices("products")
+    .setTypes("product")
+    .setQuery(QueryBuilders.termQuery("name", "foo"))
+    .execute()
+    .actionGet()
+</code></pre>
+      </section>
+
+
+      <section>
+        <h2>Going async</h2>
+        <pre><code>SearchRequestBuilder builder = new SearchRequestBuilder(node.client())
+    .setIndices("products")
+    .setTypes("product")
+    .setQuery(QueryBuilders.termQuery("name", "foo"))
+    .execute(new ActionListener&lt;SearchResponse>() {
+
+        public void onResponse(SearchResponse searchResponse) {
+            // ...
+        }
+
+        public void onFailure(Throwable e) {
+            // ...
+        }
+    });</code></pre>
+      </section>
+
+
+<section>
+  <section>
+   <h2>Google Guice - Modules</h2>
+   <pre><code>public class BillingModule extends AbstractModule {
+  @Override 
+  protected void configure() {
+    bind(TransactionLog.class).to(DatabaseTransactionLog.class);
+    bind(CreditCardProcessor.class).to(PaypalCreditCardProcessor.class);
+    bind(BillingService.class).to(RealBillingService.class);
+  }
+}</code></pre>
+  <small>Sample from <a href="http://code.google.com/p/google-guice/wiki/Motivation">guice homepage</a></small>
+  </section>
+  <section>
+   <h2>Google Guice - @Inject</h2>
+<pre><code>public class RealBillingService implements BillingService {
+  private final CreditCardProcessor processor;
+  private final TransactionLog transactionLog;
+
+  @Inject
+  public RealBillingService(CreditCardProcessor processor,
+      TransactionLog transactionLog) {
+    this.processor = processor;
+    this.transactionLog = transactionLog;
+  }
+
+// ...
+}
+</code></pre>
+  </section>
+  <section>
+   <h2>Google Guice - Injector</h2>
+<pre><code>public class App {
+
+  public static void main(String[] args) {
+    Injector injector = Guice.createInjector(new BillingModule());
+    BillingService billingService = injector.getInstance(BillingService.class);
+    ...
+  }
+
+}
+</code></pre>
+     </section>
+</section>
+
+     <section>
+       <h2>Elasticsearch - Guice 101</h2>
+<pre><code>ModulesBuilder modules = new ModulesBuilder();
+modules.add(new RestModule(settings));
+// modules.add(AnyModule.class);
+
+Injector injector = modules.createInjector();
+Client client = injector.getInstance(Client.class);
+</code></pre>
+       <ul>
+         <li>ModuleBuilder: <a href="https://github.com/elasticsearch/elasticsearch/blob/master/src/main/java/org/elasticsearch/node/internal/InternalNode.java">Node</a>, <a href="https://github.com/elasticsearch/elasticsearch/blob/master/src/main/java/org/elasticsearch/client/transport/TransportClient.java">TransportClient</a>, <a href="https://github.com/elasticsearch/elasticsearch/blob/master/src/main/java/org/elasticsearch/indices/InternalIndicesService.java">Index</a>, <a href="https://github.com/elasticsearch/elasticsearch/blob/master/src/main/java/org/elasticsearch/index/service/InternalIndexService.java">IndexShard</a> and <a href="https://github.com/elasticsearch/elasticsearch/blob/master/src/main/java/org/elasticsearch/river/RiversService.java">River</a></li>
+       </ul>
+     </section>
+
+<section>
+      <section>
+        <h2>Plugins</h2>
+        <ul>
+          <li>Extending anything: Analyzers, rivers, transport, facets, mapping types, discovery, scripting, lucene functionality</li>
+          <li>Many <a href="http://www.elasticsearch.org/guide/reference/modules/plugins.html">plugins</a> available</li>
+          <li>Site plugin: Statically serving assets</li>
+        </ul>
+        <pre><code>bin/plugin -install spinscale/elasticsearch-facetgrapher</code></pre>
+      </section>
+      <section>
+        <h2>Site plugins</h2>
+        <img src="images/facetgrapher-plugin.png" />
+      </section>
+</section>
+
+      <section>
+        <h2>Plugins</h2>
+        <p>On application start up, <code>PluginsService</code> scans for all <code>es-plugin.properties</code> files.
+<pre><code>plugin=org.elasticsearch.plugin.suggest.SuggestPlugin</code></pre>
+        </p>
+      </section>
+
+
+      <section>
+        <h2>Plugins</h2>
+<pre><code>public class SuggestPlugin extends AbstractPlugin {
+
+    public String name() {
+        return "suggest";
+    }
+
+    public String description() {
+        return "Suggest Plugin";
+    }
+
+    public void onModule(RestModule restModule) {
+        restModule.addRestAction(RestSuggestAction.class);
+    }
+}
+</code></pre>
+      </section>
+
+
+      <section>
+        <h2>Plugins</h2>
+<pre><code>Collection&lt;Class&lt;? extends Module>> modules() {}
+
+Collection&lt;Class&lt;? extends Module>> indexModules() {}
+
+Collection&lt;Class&lt;? extends Module>> shardModules() {}
+
+Collection&lt;Class&lt;? extends LifecycleComponent>> services() {}
+
+Collection&lt;Class&lt;? extends LifecycleComponent>> indexServices() {}
+
+Collection&lt;Class&lt;? extends LifecycleComponent>> shardServices() {}
+
+public void processModule(Module module) {}
+</code></pre>
+      </section>
+</section>
+
+
+<!--
+      <section>
+        <h2>Modules</h2>
+        JVM wide setup (contrary to <code>IndexModule</code> or <code>ShardModule</code>)
+<pre><code>protected void configure() {
+  bind(TransportSuggestAction.class).asEagerSingleton();
+
+  MapBinder<GenericAction, TransportAction> transportActionsBinder =
+      MapBinder.newMapBinder(binder(), GenericAction.class, TransportAction.class);
+
+  transportActionsBinder.addBinding(SuggestAction.INSTANCE).to(TransportSuggestAction.class).asEagerSingleton();
+
+  MapBinder<String, GenericAction> actionsBinder = MapBinder.newMapBinder(binder(), String.class, GenericAction.class);
+  actionsBinder.addBinding(SuggestAction.NAME).toInstance(SuggestAction.INSTANCE);
+}
+</code></pre>
+      </section>
+-->
+
+      <section>
+        <h2>FST Suggester plugin</h2>
+        <ul>
+          <li>FST - Finite state automata, see <a href="http://www.slideshare.net/lucenerevolution/automaton-invasionlucenerevolution2012">this presentation</a></li>
+          <li>Allow auto completion via <a href="http://lucene.apache.org/core/4_0_0/suggest/index.html?org/apache/lucene/search/suggest/fst/FSTCompletionLookup.html">FSTCompletionLookup</a></li>
+          <li>In-memory structure (per IndexReader)</li>
+          <li>Concurrent updates do not perform</li>
+          <li>Solution: async updates</li>
+        </ul>
+      </section>
+
+      <section class="logo">
+        <h2>Simplified execution flow</h2>
+        <img src="images/es-request.png">
+      </section>
+
+
+      <section>
+        <h2>Defining REST endpoints</h2>
+<pre><code>public class RestSuggestAction extends BaseRestHandler {
+
+  @Inject
+  public RestSuggestAction(Settings settings, Client client, RestController controller) {
+    super(settings, client);
+    controller.registerHandler(POST, "/{index}/_suggest", this);
+    controller.registerHandler(POST, "/{index}/{type}/_suggest", this);
+  }
+
+  public <span class="green">void</span> handleRequest(final RestRequest request, final RestChannel channel) {
+    <span class="fragment">// execute async request code here</span>
+  }
+}
+</code></pre>
+      </section>
+
+
+
+      <section>
+        <h3>Executing suggest request</h3>
+        <p>
+<pre><code class="java">client.execute(SuggestAction.INSTANCE, suggestRequest, new ActionListener<SuggestResponse>() {
+  public void onResponse(SuggestResponse response) {
+    try {
+      // create JSON response of SuggestResponse
+      channel.sendResponse(new XContentRestResponse(request, OK, builder));
+    } catch (Exception e) {
+      onFailure(e);
+    }
+  }
+
+  public void onFailure(Throwable e) {
+    // return HTTP error message ...
+  }
+});
+</code></pre>
+        </p>
+      </section>
+
+      <section>
+        <h2>Shard service</h2>
+        <pre><code>public class ShardSuggestService extends AbstractIndexShardComponent {
+    @Inject
+    public ShardSuggestService(ShardId shardId, @IndexSettings Settings indexSettings, IndexShard indexShard) {
+      // ...
+    }
+
+  public ShardSuggestResponse suggest(ShardSuggestRequest shardSuggestRequest) {}
+
+  public void update() {}
+  public ShardSuggestRefreshResponse refresh(ShardSuggestRefreshRequest shardSuggestRefreshRequest) {}
+
+  public void shutDown() {}
+}</code></pre>
+      </section>
+
+
+
+      <section>
+        <h2>Node Services</h2>
+        <pre><code>public class SuggestService extends AbstractLifecycleComponent<SuggestService> {
+  @Inject
+  public SuggestService(Settings settings, TransportSuggestRefreshAction suggestRefreshAction, ClusterService clusterService, IndicesService indicesService) {
+  }
+
+  protected void doStart() throws ElasticSearchException {
+    // start thread which periodically sends refresh suggest request
+    suggestUpdaterThread = EsExecutors.daemonThreadFactory(settings, "suggest_updater").newThread(new SuggestUpdaterThread());
+    suggestUpdaterThread.start();
+  }
+
+}</code></pre>
+      </section>
+
+
+      <section>
+        <h2>SuggestRefresh</h2>
+Quiz: Why is <mark>this</mark> code necessary?
+<pre><code>public class SuggestUpdaterThread implements Runnable {
+  public void run() {
+    while (!closed) {
+      DiscoveryNode node = clusterService.localNode();
+      boolean isClusterStarted = clusterService.lifecycleState().equals(Lifecycle.State.STARTED);
+
+      if (isClusterStarted && node != null && <mark>node.isMasterNode()</mark>) {
+        suggestRefreshAction.execute(new SuggestRefreshRequest()).actionGet();
+      }
+      
+      // sleep until next run here
+    }
+  }
+}
+</code></pre>
+      </section>
+
+
+      <section>
+        <h2>Lifecycle listener</h2>
+        Freeing up resources on shard deletion/cluster move (and index close)
+<pre><code>indicesService.indicesLifecycle().addListener(
+new IndicesLifecycle.Listener() {
+  public void beforeIndexShardClosed(ShardId shardId, @Nullable IndexShard indexShard, boolean delete) {
+    IndexService indexService = indicesService.indexService(shardId.index().name());
+    if (indexService != null) {
+      ShardSuggestService suggestShardService = indexService.shardInjectorSafe(shardId.id()).getInstance(ShardSuggestService.class);
+      suggestShardService.shutDown();
+    }
+  }
+});
+</code></pre>
+      </section>
+
+      <section>
+        <h2>TransportClient</h2>
+        Problem: Suggestions should work on clients, without having a node running in the same JVM try to start up server functionality
+<pre><code>public class SuggestPlugin extends AbstractPlugin {
+  public Collection&lt;Class&lt;? extends Module>> modules() {
+
+    Collection&lt;Class&lt;? extends Module>> modules = Lists.newArrayList();
+    if (isClient()) {
+      modules.add(SuggestClientModule.class);
+    } else {
+      modules.add(SuggestModule.class);
+    }
+    return modules;
+  }
+}
+</code></pre>
+      </section>
+
+      <section>
+        <h2>Testing</h2>
+        <p>
+          <ul>
+            <li><code><a href="https://github.com/spinscale/elasticsearch-suggest-plugin/blob/master/src/test/java/org/elasticsearch/module/suggest/test/AbstractSuggestTest.java">AbstractSuggestTest</a></code>: Defines all tests, and amount of nodes running for tests (so clustered environment is also tested)</li>
+            <li>Abstract methods: <code>getSuggestions()</code> and refreshing suggesters (all, per-index, per-field)</code></li>
+            <li><code><a href="https://github.com/spinscale/elasticsearch-suggest-plugin/blob/master/src/test/java/org/elasticsearch/module/suggest/test/RestSuggestActionTest.java">RestSuggestActionTest</a>, <a href="https://github.com/spinscale/elasticsearch-suggest-plugin/blob/master/src/test/java/org/elasticsearch/module/suggest/test/TransportClientTest.java">TransportClientTest</a>, <a href="https://github.com/spinscale/elasticsearch-suggest-plugin/blob/master/src/test/java/org/elasticsearch/module/suggest/test/TransportSuggestActionTest.java">TransportSuggestActionTest</a>, <a href="https://github.com/spinscale/elasticsearch-suggest-plugin/blob/master/src/test/java/org/elasticsearch/module/suggest/test/SuggestBuildersTest.java">SuggestBuildersTest</a></code></li>
+            <li><i>Hint</i>: <a href="https://github.com/spinscale/elasticsearch-suggest-plugin/blob/master/src/test/java/org/elasticsearch/module/suggest/test/AbstractSuggestTest.java#L40-L55">Start up nodes in parallel for speedup</a></li>
+          </ul>
+        </p>
+      </section>
+
+
+      <section>
+        <h2>Plugin assembly</h2>
+        <p>
+          <ul>
+            <li><a href="http://maven.apache.org/plugins/maven-assembly-plugin/">maven assembly plugin</a> is used to create a zip file</li>
+            <li>Hooks up in the <code>package</code> lifecycle</li>
+            <li>zip file includes
+              <ul>
+                <li><code>mvn package</code> created jar</li>
+                <li>dependencies from <code>compile</code> scope</li>
+              </ul>
+            </li>
+            <li>zip file excludes the <code>org.elasticsearch:elasticsearch</code> dependency</li>
+          </ul>
+        </p>
+      </section>
+
+ 
+<section>
+      <section>
+        <h2>Facets</h2>
+        Implement own facet types to
+        <p>
+          <ul style="list-style-type: none">
+            <li>... be faster</li>
+            <li>... save memory</li>
+            <li>... be more flexible</li>
+            <li>... save post processing work</li>
+          </ul>
+        </p>
+      </section>
+      <section>
+        <h2>Samples</h2>
+        <ul>
+          <li><a href="https://github.com/ptdavteam/elasticsearch-approx-plugin">Approximately date facets</a> using <a href="https://github.com/clearspring/stream-lib">stream-lib</a>. See the <a href="https://docs.google.com/presentation/d/1ESNiqd7HuIfuwXSSK81PAAu6AmEPEE0u_vyk4FU5x9o/present">presentation</a>. <q>Counts over 1 million distinct items in 80kb of memory to be accurate within 1% of true value</q></li>
+          <li><a href="https://github.com/lovelysystems/elasticsearch-ls-plugins/">Lovely systems facet plugins</a></li>
+          <li><a href="https://github.com/bleskes/es_nl_meetup_2012_9_20">Lettercount plugin</a>, plus <a href="http://www.slideshare.net/bleskes/elastic-search-meetup-2092012">presentation</a></li>
+          <li><a href="https://github.com/imotov/elasticsearch-facet-script">Script facet plugin</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Implementation</h2>
+        <ul>
+          <li>Plugins adds a <code>FacetProcessor</code> in the <code>FacetModule</code></li>
+          <li>Concrete facet processor implements <code>FacetProcessor</code></li>
+          <li>Concrete Facet implements <code>InternalFacet</code></li>
+          <li>Concrete facet collector extends <code>AbstractFacetCollector</code></li>
+        </ul>
+      </section>
+      
+      <section>
+        <h2>Workflow</h2>
+        <ul>
+          <li><code>FacetProcessor</code> parses possible request options, creates <code>FacetCollector</code></li>
+          <li><code>FacetCollector</code> operates per shard, gets docids from matched query, looks up doc values in the fieldCache and emits a <code>Facet</code></li>
+          <li><code>FacetProcessor</code> gets a <code>List&lt;Facet></code>, merges it to one <code>Facet</code></li>
+          <li>One Facet is returned as facet data</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Workflow</h2>
+        <img src="images/facet-processing.png">
+      </section>
+
+      <section>
+        <h2>Idea</h2>
+        <ul>
+          <li>A geo region facet type</li>
+          <li>Allows you to define arbitrary non-overlapping geo polygons as regions</li>
+          <li>Facet groups results into these regions</li>
+          <li>Would allow you to cluster/facet by country/state</li>
+          <li>Saves classical pre/post processing work</li>
+          <li>Could easily be done by a term facet, if region is added on indexing as string</li>
+        </ul>
+      </section>
+</section>
+
+
+<section>
+      <section>
+        <h2>Rivers</h2>
+          <ul>
+            <li>Automatically pull data into elasticsearch</li>
+            <li>Run only on a single node in the cluster</li>
+            <li><a href="http://www.elasticsearch.org/guide/reference/river/couchdb.html">CouchDB</a>, <a href="http://www.elasticsearch.org/guide/reference/river/rabbitmq.html">RabbitMQ</a>, <a href="http://www.elasticsearch.org/guide/reference/river/twitter.html">Twitter</a>, <a href="http://www.elasticsearch.org/guide/reference/river/wikipedia.html">wikipedia</a>, <a href="http://www.pilato.fr/rssriver/">RSS</a>, <a href="https://github.com/richardwilly98/elasticsearch-river-mongodb/">MongoDB</a>, <a href="https://github.com/jprante/elasticsearch-river-jdbc">JDBC</a>, <a href="https://github.com/tlrx/elasticsearch-river-ldap">LDAP</a>, <a href="https://github.com/domdorn/elasticsearch-river-activemq/">ActiveMQ</a>, <a href="https://github.com/obazoud/elasticsearch-river-confluence">Confluence</a>, <a href="https://github.com/javanna/elasticsearch-river-solr">Solr</a>, <a href="https://github.com/spinscale/elasticsearch-river-streaming-json">JSON</a>, <a href="https://github.com/sunnygleason/elasticsearch-river-st9">St9</a>, <a href="https://github.com/scharron/elasticsearch-river-mysql">MySQL</a>, <a href="https://github.com/jprante/elasticsearch-river-oai">OAI</a>, <a href="https://github.com/albogdano/elasticsearch-river-amazonsqs">AWS SQS</a>, <a href="http://www.pilato.fr/fsriver/">Filesystem</a>, <a href="http://www.pilato.fr/dropbox/">Dropbox</a></li>
+          </ul>
+<pre><code class="javascript">curl -XPUT 'localhost:9200/_river/my_river/_meta' -d '{
+  "type" : "dummy",
+  "config" : {
+    "user" : "foo",
+    "password" : "bar"
+  }
+}'</code></pre>
+      </section>
+      
+      <section>
+        <h2>JSON streaming</h2>
+        <ul>
+          <li>Imports/Deletes JSON data</li>
+          <li>Makes bulk requests</li>
+          <li>Prevents going OOM due to execute indexing requests regularly</li>
+          <li>Really <span class="green">streams</span> data via HTTP</li>
+          <li>Tries to fetch incremental updates</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Implementation</h2>
+<pre><code>public class JsonRiverPlugin extends AbstractPlugin {
+
+  public String name() {
+    return "json";
+  }
+
+  public String description() {
+    return "River Streaming JSON Plugin";
+  }
+
+  public void onModule(RiversModule module) {
+    module.registerRiver("json", JsonRiverModule.class);
+  }
+}
+</code></pre>
+
+      </section>
+
+<section>
+  <h2>JsonRiverModule</h2>
+<pre><code>public class JsonRiverModule extends AbstractModule {
+
+    protected void configure() {
+        bind(River.class).to(JsonRiver.class).asEagerSingleton();
+    }
+}
+</code></pre>
+</section>
+
+<section>
+  <h2>JsonRiver</h2>
+<pre><code>public class JsonRiver extends AbstractRiverComponent implements River {
+
+private volatile Thread slurperThread;
+private volatile Thread indexerThread;
+private final TransferQueue&lt;RiverProduct> stream = new LinkedTransferQueue&lt;RiverProduct>();
+
+}
+</code></pre>
+</section>
+
+<section>
+  <h2>Slurper</h2>
+<pre><code>class Slurper implements Runnable {
+  public void run() {
+    RiverImporter importer = new RiverImporter("URL", stream);
+
+    while (!closed) {
+      String lastIndexUpdate = getLastUpdatedTimestamp();
+      RiverProductImport result = importer.executeImport(lastIndexUpdate);
+      storeLastUpdatedTimestamp(result.exportTimestamp);
+
+      try {
+        Thread.sleep(RIVER_REFRESH_INTERVAL.getMillis());
+      } catch (InterruptedException e1) {}
+    }
+  }
+}
+</code></pre>
+</section>
+
+<section>
+  <h2>Indexer</h2>
+<pre><code>private class Indexer implements Runnable {
+  public void run() {
+    while (!closed) {
+      try {
+        RiverProduct product = stream.take();
+        bulk = client.prepareBulk();
+        do {
+          addProductToBulkRequest(product);
+        } while ((product = stream.poll(250, TimeUnit.MILLISECONDS)) != null && deletedDocuments + insertedDocuments < RIVER_MAX_BULK_SIZE);
+      } finally {
+        bulk.execute().actionGet();
+      }
+    }
+  }
+}
+</code></pre>
+</section>
+
+</section>
+
+
+<section>
+      <section>
+        <h2>Analyzers</h2>
+        <ul>
+          <li>Extend elasticsearch with existing lucene analyzers</li>
+          <li>Lots of analyzers: <a href="https://github.com/elasticsearch/elasticsearch-analysis-icu">ICU</a>, <a href="https://github.com/elasticsearch/elasticsearch-analysis-smartcn">SmartCN</a>, <a href="https://github.com/elasticsearch/elasticsearch-analysis-phonetic">Phonetic</a>, <a href="https://github.com/elasticsearch/elasticsearch-analysis-stempel">Stempel</a>, <a href="https://github.com/elasticsearch/elasticsearch-analysis-kuromoji">Kuromoji</a>, <a href="https://github.com/jprante/elasticsearch-analysis-decompound">Decompounder</a>, <a href="https://github.com/yakaz/elasticsearch-analysis-combo">Combo</a>, <a href="https://github.com/jprante/elasticsearch-analysis-naturalsort">NaturalSort</a>, <a href="https://github.com/jprante/elasticsearch-analysis-skos">SKOS</a>, <a href="https://github.com/jprante/elasticsearch-analysis-hunspell">Hunspell</a>, <a href="https://github.com/medcl/elasticsearch-analysis-ik">IK</a>, <a href="https://github.com/medcl/elasticsearch-analysis-mmseg">MMSEG</a>, <a href="https://github.com/medcl/elasticsearch-analysis-pinyin">Pinyin</a>, <a href="https://github.com/imotov/elasticsearch-analysis-morphology">Morphology</a>, <a href="https://github.com/medcl/elasticsearch-analysis-paoding">Paoding</a>, <a href="https://github.com/chytreg/elasticsearch-analysis-morfologik">Morfologik</a>, <a href="https://github.com/chanil1218/elasticsearch-analysis-korean">Korean</a>, <a href="https://github.com/jaeyoi/elasticsearch-analysis-korean">Korean 2</a>, <a href="https://github.com/suguru/elasticsearch-analysis-japanese">Japanese</a>, <a href="https://github.com/skroutz/elasticsearch-analysis-greeklish">greeklish</a></li>
+          <li>Attention: Not all analyzers are maintained</li>
+        </ul>
+      </section>
+
+
+      <section>
+        <h2>Morphologic</h2>
+<pre><code>public class AnalysisMorphologyPlugin extends AbstractPlugin {
+
+    public String name() {
+        return "analysis-morphology";
+    }
+
+    public String description() {
+        return "Morphology analysis support";
+    }
+
+    public void onModule(AnalysisModule module) {
+        module.addProcessor(new MorphologyAnalysisBinderProcessor());
+    }
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>BinderProcessor</h2>
+<pre><code>public class MorphologyAnalysisBinderProcessor extends AnalysisModule.AnalysisBinderProcessor {
+
+  public void processAnalyzers(AnalyzersBindings analyzersBindings) {
+    analyzersBindings.processAnalyzer("english_morphology", EnglishMorphologyAnalyzerProvider.class);
+  }
+
+  public void processTokenFilters(TokenFiltersBindings tokenFiltersBindings) {
+    tokenFiltersBindings.processTokenFilter("english_morphology", EnglishMorphologyTokenFilterFactory.class);
+  }
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>AnalyzerProvider</h2>
+<pre><code>public class EnglishMorphologyAnalyzerProvider extends AbstractIndexAnalyzerProvider&lt;MorphologyAnalyzer> {
+
+  private final MorphologyAnalyzer analyzer;
+
+  @Inject
+  public EnglishMorphologyAnalyzerProvider(...) {
+    super(index, indexSettings, name, settings);
+    try {
+      analyzer = new EnglishAnalyzer();
+    } catch (IOException ex) { /* ... */ }
+  }
+
+  public MorphologyAnalyzer get() {
+    return this.analyzer;
+  }
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>TokenFilterFactory</h2>
+<pre><code>public class EnglishMorphologyTokenFilterFactory extends AbstractTokenFilterFactory {
+
+    private final LuceneMorphology luceneMorph;
+
+    @Inject
+    public EnglishMorphologyTokenFilterFactory(...) {
+        super(index, indexSettings, name, settings);
+        try {
+            luceneMorph = new EnglishLuceneMorphology();
+        } catch (IOException ex) {  /* ... */ }
+    }
+
+    public TokenStream create(TokenStream tokenStream) {
+        return new MorphologyFilter(tokenStream, luceneMorph);
+    }
+}</code></pre>
+      </section>
+
+</section>
+
+
+      <section>
+        <h2>Transport plugins</h2>
+        <p>
+          <ul>
+            <li>Provides alternative access to elasticsearch via different APIs</li>
+            <li><a href="https://github.com/elasticsearch/elasticsearch-transport-memcached">memcached</a>, <a href="https://github.com/elasticsearch/elasticsearch-transport-wares">servlet</a>, <a href="https://github.com/elasticsearch/elasticsearch-transport-thrift">Thrift</a>, <a href="https://github.com/sonian/elasticsearch-jetty">Jetty</a>, <a href="https://github.com/jprante/elasticsearch-transport-websocket">websocket</a>, <a href="https://github.com/tlrx/transport-zeromq">ZeroMQ</a>, <a href="https://github.com/Asquera/elasticsearch-ssl-transport-plugin">SSL</a>, <a href="https://github.com/couchbaselabs/elasticsearch-transport-couchbase">Couchbase</a></li>
+          </ul>
+        </p>
+      </section>
+
+
+     <section>
+       <h2>Other plugins</h2>
+       <ul>
+         <li>Scripting plugins: <a href="https://github.com/elasticsearch/elasticsearch-lang-python">python</a>, <a href="https://github.com/elasticsearch/elasticsearch-lang-javascript">JavaScript</a>, <a href="https://github.com/elasticsearch/elasticsearch-lang-groovy">Groovy</a>, <a href="https://github.com/fcheung/elasticsearch-jruby">Ruby</a>, <a href="https://github.com/felipehummel/elasticsearch-lang-scala/">Scala</a>, and of course <a href="http://www.spacevatican.org/2012/5/12/elasticsearch-native-scripts-for-dummies/">native scripts</a></li>
+         <li>Site plugins: <a href="https://github.com/lukas-vlcek/bigdesk">BigDesk</a>, <a href="https://github.com/karmi/elasticsearch-paramedic">Paramedic</a>, <a href="https://github.com/spinscale/elasticsearch-facetgrapher">Facetgrapher</a>, <a href="https://github.com/Aconex/elasticsearch-head">Elasticsearch Head</a></li>
+         <li>Misc plugins: <a href="https://github.com/elasticsearch/elasticsearch-mapper-attachments">Mapper</a>, <a href="https://github.com/elasticsearch/elasticsearch-hadoop">Hadoop</a>, <a href="https://github.com/elasticsearch/elasticsearch-cloud-aws">AWS Cloud</a>, <a href="https://github.com/sonian/elasticsearch-zookeeper">Zookeeper</a>, <a href="https://github.com/spinscale/elasticsearch-suggest-plugin">FST suggester</a>, <a href="https://github.com/karussell/elasticsearch-reindex">reindex</a>, <a href="https://github.com/derryx/elasticsearch-changes-plugin">change tracking</a>, <a href="https://github.com/medcl/elasticsearch-partialupdate">partial update</a>, <a href="https://github.com/mattweber/elasticsearch-mocksolrplugin">Mock Solr</a>, <a href="https://github.com/jprante/elasticsearch-knapsack">knapsack</a>, <a href="https://github.com/jprante/elasticsearch-langdetect">langdetect</a>, <a href="https://github.com/jprante/elasticsearch-index-termlist">index term list</a>, <a href="https://github.com/jprante/elasticsearch-skywalker">skywalker</a></a></li>
+      </ul>
+     </section>
+
+     <section>
+        <h2>Drivers &amp; Integrations</h2>
+        <ul>
+         <li>Drivers &amp; integrations: <a href="http://www.elasticsearch.org/guide/appendix/clients.html">Official elasticsearch page</a>, <a href="https://github.com/kvz/cakephp-elasticsearch-plugin">CakePHP</a>, <a href="http://jamescarr.github.com/mongoosastic/">Mongoose</a></li>
+         <li>Monitoring: <a href="https://github.com/justincase/sd-elasticsearch">Server Density</a>, <a href="https://github.com/phobos182/collectd-elasticsearch">collectd</a>, <a href="https://gist.github.com/2159398">Munin gists</a>, <a href="https://github.com/anchor/nagios-plugin-elasticsearch">Nagios</a>, <a href="https://github.com/revinate/elasticsearch-munin-plugins">Munin</a></li>
+         <li>Sysadmins: <a href="https://github.com/barnybug/elasticsearch-star">starcluster</a>, <a href="http://alcy.github.com/2012/06/13/elasticsearch-discovery-plugin-for-mcollective/">MCollective</a></li>
+        </ul>
+      </section>
+
+     <section>
+        <h2>Soon...</h2>
+        <ul>
+          <li>Lucene 4.0 migration is ongoing</li>
+          <li>Result grouping (<a href="https://github.com/elasticsearch/elasticsearch/issues/256">#256</a>)</li>
+          <li>More native autocomplete (AnalyzingSuggester in Lucene 4.1)</li>
+          <li>No public roadmap right now</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Done</h2>
+        <p>
+          <ul>
+            <li>Questions?</li>
+            <li>Critics?</li>
+            <li>Tips?</li>
+          </ul>
+        </p>
+      </section>
+
+     <section>
+       <h2>Books</h2>
+       <ul>
+         <li>Sorry, no elasticsearch book yet...</li>
+         <li><a href="http://www.amazon.de/Lucene-Action-Erik-Hatcher/dp/1933988177">Lucene in Action</a> (pre 4.0)</li>
+         <li><a href="http://www.amazon.de/Taming-Text-Find-Organize-Manipulate/dp/193398838X">Taming Text</a></li>
+         <li><a href="http://www.amazon.de/Introduction-Information-Retrieval-Christopher-Manning/dp/0521865719/">Introduction to Information Retrieval</a></li>
+         <li><a href="http://www.amazon.de/Modern-Information-Retrieval-Press-Books/dp/0321416910/ref=pd_sim_eb_1">Modern information retrieval</a></li>
+       </ul>
+     </section>
+
+      <section>
+        <h2>Links & acknowledgements</h2>
+        <p>
+          <ul>
+            <li>Hakim El Hattab for <a href="https://github.com/hakimel/reveal.js">reveal.js</a></li>
+            <li>The whole <a href="http://www.elasticsearch.com">elasticsearch team</a></li>
+            <li><a href="http://www.elasticsearch.org/tutorials/2011/09/14/creating-pluggable-rest-endpoints.html">Creating a pluggable REST endpoint</a></li>
+            <li>Solr vs. elasticsearch comparison, part <a href="http://blog.sematext.com/2012/08/23/solr-vs-elasticsearch-part-1-overview/">1</a>, <a href="http://blog.sematext.com/2012/09/04/solr-vs-elasticsearch-part-2-data-handling/">2</a>, <a href="http://blog.sematext.com/2012/10/01/solr-vs-elasticsearch-part-3-searching/">3</a>, <a href="http://blog.sematext.com/2012/10/30/solr-vs-elasticsearch-part-4-faceting/">4</a>, <a href="SOON">5</a></li>
+            <li><a href="http://jprante.github.com/lessons/2012/03/27/Writing-a-simple-plugin-for-Elasticsearch.html">How to write a simple plugin</a></li>
+            <li>All the elasticsearch plugin authors</li>
+          </ul>
+        </p>
+      </section>
+
+    </div>
+
+  </div>
+
+  <script src="lib/js/head.min.js"></script>
+  <script src="js/reveal.js"></script>
+
+  <script>
+
+    // Full list of configuration options available here:
+    // https://github.com/hakimel/reveal.js#configuration
+    Reveal.initialize({
+      controls: true,
+      progress: true,
+      history: true,
+      center: false,
+      theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+      transition: Reveal.getQueryHash().transition || 'concave', // default/cube/page/concave/zoom/linear/none
+
+      // Optional libraries used to extend on reveal.js
+      dependencies: [
+        { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+        { src: 'plugin/markdown/showdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+        { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+        { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+        { src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+        { src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+        // { src: 'plugin/remotes/remotes.js', async: true, condition: function() { return !!document.body.classList; } }
+      ]
+    });
+
+  </script>
+
+  </body>
+</html>
+
