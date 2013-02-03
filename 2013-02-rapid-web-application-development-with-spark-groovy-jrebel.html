@@ -1,0 +1,203 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Spark, groovy &amp; JRebel - a productive combination</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Alexander Reelsen">
+
+    <!-- Le styles -->
+    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap-combined.min.css" rel="stylesheet">
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+  </head>
+
+  <body>
+
+    <div class="container">
+
+<div class="span12">
+<h1>Spark, groovy &amp; JRebel - a productive combination</h1>
+<h4>Alexander Reelsen, 2013-02</h4>
+</div>
+
+<div class="span8">
+<p>
+JVM web frameworks have too much unused boilerplate, need a full server restart to resemble changes and are not fun in general - so seems the public opinion.<br />
+Most of the time this is true, but there are tons of frameworks, which can be extended with a few tweaks and can be fun again.<br />
+Take this code sample, it looks somewhat similar to a route definition in expressjs, but actually is groovy code using spark. I bet you understand it almost immediately.
+</p>
+
+<p>
+<script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile1.groovy"></script>
+</p>
+
+
+<h2>Spark</h2>
+
+<p>
+Before you read on, get a first impression of the spark framework at its <a href="http://sparkjava.com/">homepage</a>, especially the <a href="http://sparkjava.com/readme.html">documentation</a>. Basically Spark adds some nice syntactic sugar on top of a servlet application. It uses <a href="http://www.eclipse.org/jetty/">jetty</a> inside and can be run standalone or as a servlet inside of a servlet container. Spark source is available on <a href="https://github.com/perwendel/spark">github</a> and despite the lack of commits in the last months I mailed with the author Per Wendel and he made it clear to me that the project is not dead.
+</p>
+
+<p>
+A simple definition, which includes a preprocessing filter and a normal routes with a parameter looks like this:
+</p>
+
+<p>
+<script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile8.groovy"></script>
+</p>
+
+<p>
+The above listing shows several neat features of spark
+<ul>
+<li>Preprocessing filters</li>
+<li>Routes with matchers</li>
+<li>Simple returning of data within your route</li>
+<li>Nice simplifications for <code>request</code> and <code>session</code> classes</li>
+</ul>
+So, what is missing from here? Why didn't I just stick with it and went on? Fair enough:
+<ul>
+<li>Having developed with a mixture of groovy and java the last two years, this feels somewhat complex for rapid prototyping - even though it is still tons better than most servlet based web development.</li>
+<li>Boilerplate: See the big anonymous inner classes of the route and filter? Just too much</li>
+<li>Returning of data is too simple, I want to return json or render a jade template</li>
+<li>You cannot check url parameters in my filters. Most common sample: My request is like <code>/foo/:name/checkout</code> and you want to make sure the user in the session is the same user then in the URL</li>
+</ul>
+</p>
+
+<p>
+Whether you are using Spark for rapid prototyping or real web applications - always be sure you get fast development cycles, reduce setup time and use a preferred technology. If you lack any of them, it will cost money.
+</p>
+
+<h2>Setting up a project with groovy</h2>
+
+As we will be using groovy, I wont make the mistake of using maven for my project. So bootstrap a small project like this:
+
+<p>
+<script src="https://gist.github.com/f79683b4e449076aab27.js?file=create-structure.sh"></script>
+</p>
+
+The next step is to create a <code>build.gradle</code> file
+
+<p>
+<script src="https://gist.github.com/f79683b4e449076aab27.js?file=build.gradle"></script>
+</p>
+
+In case you are feeling that gradle is incredibly slow to use, make sure that you set <code>GRADLE_OPTS="-Dorg.gradle.daemon=true"</code> in your environment.
+
+<h2>Using spark with groovy</h2>
+
+<p>As a first try, lets make the above application short and remove all the anonymous classes:</p>
+
+<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile9.groovy"></script></p>
+
+<p>The anonymous classes have been replaced with closures, resulting in much less code, while retaining the full readability. The closure is executed in the context of a <code>Filter</code> or <code>Route</code> class inside of the <code>SparkGroovy</code> class. <code>SparkGroovy.get()</code> looks like this (but can be seen as a hidden implementation detail).</p>
+
+<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile10.groovy"></script></p>
+
+<h3>Neat renderers</h3>
+
+<p>The next step is to get support rendering different formats. The resulting spark framework code should look like this for rendering JSON or a jade template (thus the dependency in the <code>build.gradle</code> file)</p>
+
+<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile11.groovy"></script></p>
+
+<p>In order to support this it is pretty easy to extend the <code>SparkGroovy</code> class (the JSON class is included due to the Jetty dependency, alternatively you could just use the <code>JsonBuilder</code> in the groovy-all package)</p>
+
+<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile6.groovy"></script></p>
+
+<p>The <code>JadeConfiguration</code> class is configured to look for templates in <code>src/main/resources/views</code> as root directory, which you would need to create in order to render jade templates.
+</p>
+
+<h2>Making spark really groovy</h2>
+
+<h3>Chaining closures</h3>
+
+<p>
+If you have ever used <a href="http://nodejs.org/">node</a> and <a href="http://expressjs.com/">expressjs</a> (whenever I mention this at java user groups, most of the attendees tend to have one of those "haha, he really said it"-laughs. Think about your attitude and the market share your favourite framework is losing against this powerful stack), you might know the <a href="http://en.wikipedia.org/wiki/Chain-of-responsibility_pattern"><i>chain of responsibility</i> pattern</a> it uses, which allows to push a request through a series of components. Each component may decide whether it actually does something - like writing out data or checking authentication - or just passes the request on. This actually is a very neat pattern, as it allows to do one of my requirements above - checking for URL parameters and rejecting the request in case of a bad check.
+</p>
+
+<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile2.groovy"></script></p>
+
+<p>So, what exactly does this minor change to the <code>SparkGroovy.get()</code> method do? Well, actually a lot. It allows the developer to chain closures for methods, as in this example</p>
+
+<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile3.groovy"></script></p>
+
+<p>
+Another very cool feature of this "chain-of-responsibility" pattern is the possibility to support an arbitrary amount of output formats by simply chaining any amount of renderers.
+</p>
+
+<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile4.groovy"></script></p>
+
+<p>In order to check the authentication sample, you can now login first, and then use the session cookie to call the greeting URL</p>
+
+<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile6.txt"></script></p>
+
+<p>I know that you would usually design a web framework to split between view and controller. The controller should return a list of elements to be rendered, where as the view should cater for the format in this particular case. This not really good solved and can be done way better. Remember, this is prototyping.</p>
+
+<h2>Adding JRebel support to your application</h2>
+
+<p>
+Ok, so now I shortened lots of code - but still almost any other web framework (like rails, node or php based ones) will smile at the stop/change/compile/start cycles the typical java application suffers from. There are not too much frameworks coming to mind, which solve this problem at framework level. <a href="http://www.playframework.org">Playframework 1 and 2</a> being among them, the <a href="http://www.ninjaframework.org/">ninja framework</a> tries to solve this via the <a href="http://wiki.eclipse.org/Jetty/Feature/Jetty_Maven_Plugin">maven-jetty-plugin</a> (as jetty supports a hot reloading mechanism by default, which I have not yet elaborated a lot and seems to require a servlet based setup), but that's it. Please name other web frameworks having this feature.
+</p>
+
+<p>
+Anyway, <a href="http://zeroturnaround.com/software/jrebel/">JRebel</a> is a commercial software (<a href="http://zeroturnaround.com/software/jrebel/offline-registration/">free trial available</a>) doing reliable class reloading. Either use your existing license key or obtain one and make sure your JRebel installation is working. There is also a <a href="http://zeroturnaround.com/jrebel/jrebel-gradle-plugin-beta/">gradle plugin</a> available, but somehow I was not able to get it to work - though I only played 10 minutes with it.</p>
+
+
+<h3>Using your IDE with JRebel</h3>
+
+<p>
+As I converted to intellij in the last two months due to eclipse 4.0 being unusable, my advice here is to simply install the plugin - but there are plugins for all the big IDEs out there, get them <a href="http://zeroturnaround.com/software/jrebel/download">at the download page</a>. Also make sure, you configured the plugin appropriately for your IDE after the installation.
+</p>
+
+<h3>Installing the spark jrebel plugin</h3>
+
+<p>
+First, check out the git repository via <code>git clone http://github.com/spinscale/jrebel-spark-plguin</code>, then run <code>mvn package</code> inside of it and you should get a jar in <code>target/jrebel-plugin-spark-0.1-SNAPSHOT.jar</code>.
+</p>
+
+<h3>Configuring IntelliJ</h3>
+
+<p>You need to set the following properties in order to have a correctly running spark application with jrebel support</p>
+
+<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile7.txt"></script></p>
+
+<p>Now fire up your application via <code>Shift+Alt+F10</code> (on Mac OS) and select <code>Run with JRebel</code>. Now your application should start with the JRebel banner first (in case of the trial version). Whenever some code changes, the jrebel spark plugin is calling the method and class you specified in the properties, after it cleared out all the routes. This may lead to memory leaks, but I do not care for prototyping.
+
+<p>
+<span class="label label-warning">Heads up!</span> It is not fully automated yet. You still need to compile your code manually via <code>Shift+Cmd+F9</code> in IntelliJ as this feature does not work when the application is running (that is mentioned at the configuration setting). This works flawlessly in eclipse by the way, in case you set the <code>Build automatically</code> option.
+</p>
+
+<h2>Extending it further aka TODO</h2>
+
+<p>
+The whole project was created during a weekend, so the quality is sort of low - but sufficient for my ways of rapid prototyping.
+
+<ul>
+  <li>Your prototype has to have a static method for reloading. Not too cool (maybe a <b>small</b> dependency injection via guice might be useful here). This is a big reason I merely use this approach mainly for prototyping right now (maintaining persistence layers this way is not too cool).</li>
+  <li>No exception handling in the jrebel plugin (sorry, but only did a quick hack here). Also loading the whole application over and over might lead to problems if you start up some persistence layer stuff. You might need to hack around that.</li>
+  <li>Usually you do not need <code>SparkGroovy</code> with non-static methods (as Spark is working completely with static methods). However my groovy was not good enough to make the closure delegation work in the scope of a static <code>get</code> or <code>post</code> class. If you can help me, I will sponsor beer :-)</li>
+</ul>
+
+</p>
+
+<h2>Sources</h2>
+
+Of course all the sources in here are at github (<a href="">spark-groovy</a> and <a href="">jrebel-spark-plugin</a>). Do whatever you want with it. I would be more than glad, if you contributed something back. Write a blogpost, correct my horrible groovy.
+
+<h2>Contact</h2>
+
+In case I did something horribly wrong, just drop me a note a <a href="mailto:alexander@reelsen.net">alexander@reelsen.net</a>. I've been a java web framework hacker for most of the last five years, but have a high interest in search.
+
+</div>
+
+    </div> <!-- /container -->
+
+    <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/js/bootstrap.min.js"></script>
+  </body>
+</html>
+
