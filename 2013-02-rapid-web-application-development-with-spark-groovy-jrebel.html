@@ -34,7 +34,7 @@ Take this code sample, it looks somewhat similar to a route definition in expres
 </p>
 
 <p>
-<script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile1.groovy"></script>
+<script src="https://gist.github.com/spinscale/4713610.js"></script>
 </p>
 
 
@@ -49,7 +49,7 @@ A simple definition, which includes a preprocessing filter and a normal routes w
 </p>
 
 <p>
-<script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile8.groovy"></script>
+<script src="https://gist.github.com/spinscale/4713618.js"></script>
 </p>
 
 <p>
@@ -78,13 +78,13 @@ Whether you are using Spark for rapid prototyping or real web applications - alw
 As we will be using groovy, I wont make the mistake of using maven for my project. So bootstrap a small project like this:
 
 <p>
-<script src="https://gist.github.com/f79683b4e449076aab27.js?file=create-structure.sh"></script>
+<script src="https://gist.github.com/spinscale/4713622.js"></script>
 </p>
 
 The next step is to create a <code>build.gradle</code> file
 
 <p>
-<script src="https://gist.github.com/f79683b4e449076aab27.js?file=build.gradle"></script>
+<script src="https://gist.github.com/spinscale/4713627.js"></script>
 </p>
 
 In case you are feeling that gradle is incredibly slow to use, make sure that you set <code>GRADLE_OPTS="-Dorg.gradle.daemon=true"</code> in your environment.
@@ -93,21 +93,29 @@ In case you are feeling that gradle is incredibly slow to use, make sure that yo
 
 <p>As a first try, lets make the above application short and remove all the anonymous classes:</p>
 
-<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile9.groovy"></script></p>
+<p>
+<script src="https://gist.github.com/spinscale/4713635.js"></script>
+</p>
 
 <p>The anonymous classes have been replaced with closures, resulting in much less code, while retaining the full readability. The closure is executed in the context of a <code>Filter</code> or <code>Route</code> class inside of the <code>SparkGroovy</code> class. <code>SparkGroovy.get()</code> looks like this (but can be seen as a hidden implementation detail).</p>
 
-<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile10.groovy"></script></p>
+<p>
+<script src="https://gist.github.com/spinscale/4713643.js"></script>
+</p>
 
 <h3>Neat renderers</h3>
 
 <p>The next step is to get support rendering different formats. The resulting spark framework code should look like this for rendering JSON or a jade template (thus the dependency in the <code>build.gradle</code> file)</p>
 
-<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile11.groovy"></script></p>
+<p>
+<script src="https://gist.github.com/spinscale/4713646.js"></script>
+</p>
 
 <p>In order to support this it is pretty easy to extend the <code>SparkGroovy</code> class (the JSON class is included due to the Jetty dependency, alternatively you could just use the <code>JsonBuilder</code> in the groovy-all package)</p>
 
-<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile6.groovy"></script></p>
+<p>
+<script src="https://gist.github.com/spinscale/4713650.js"></script>
+</p>
 
 <p>The <code>JadeConfiguration</code> class is configured to look for templates in <code>src/main/resources/views</code> as root directory, which you would need to create in order to render jade templates.
 </p>
@@ -120,21 +128,29 @@ In case you are feeling that gradle is incredibly slow to use, make sure that yo
 If you have ever used <a href="http://nodejs.org/">node</a> and <a href="http://expressjs.com/">expressjs</a> (whenever I mention this at java user groups, most of the attendees tend to have one of those "haha, he really said it"-laughs. Think about your attitude and the market share your favourite framework is losing against this powerful stack), you might know the <a href="http://en.wikipedia.org/wiki/Chain-of-responsibility_pattern"><i>chain of responsibility</i> pattern</a> it uses, which allows to push a request through a series of components. Each component may decide whether it actually does something - like writing out data or checking authentication - or just passes the request on. This actually is a very neat pattern, as it allows to do one of my requirements above - checking for URL parameters and rejecting the request in case of a bad check.
 </p>
 
-<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile2.groovy"></script></p>
+<p>
+<script src="https://gist.github.com/spinscale/4713657.js"></script>
+</p>
 
 <p>So, what exactly does this minor change to the <code>SparkGroovy.get()</code> method do? Well, actually a lot. It allows the developer to chain closures for methods, as in this example</p>
 
-<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile3.groovy"></script></p>
+<p>
+<script src="https://gist.github.com/spinscale/4713664.js"></script>
+</p>
 
 <p>
 Another very cool feature of this "chain-of-responsibility" pattern is the possibility to support an arbitrary amount of output formats by simply chaining any amount of renderers.
 </p>
 
-<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile4.groovy"></script></p>
+<p>
+<script src="https://gist.github.com/spinscale/4713671.js"></script>
+</p>
 
 <p>In order to check the authentication sample, you can now login first, and then use the session cookie to call the greeting URL</p>
 
-<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile6.txt"></script></p>
+<p>
+<script src="https://gist.github.com/spinscale/4713674.js"></script>
+</p>
 
 <p>I know that you would usually design a web framework to split between view and controller. The controller should return a list of elements to be rendered, where as the view should cater for the format in this particular case. This not really good solved and can be done way better. Remember, this is prototyping.</p>
 
@@ -164,7 +180,9 @@ First, check out the git repository via <code>git clone http://github.com/spinsc
 
 <p>You need to set the following properties in order to have a correctly running spark application with jrebel support</p>
 
-<p><script src="https://gist.github.com/f79683b4e449076aab27.js?file=gistfile7.txt"></script></p>
+<p>
+<script src="https://gist.github.com/spinscale/4713676.js"></script>
+</p>
 
 <p>Now fire up your application via <code>Shift+Alt+F10</code> (on Mac OS) and select <code>Run with JRebel</code>. Now your application should start with the JRebel banner first (in case of the trial version). Whenever some code changes, the jrebel spark plugin is calling the method and class you specified in the properties, after it cleared out all the routes. This may lead to memory leaks, but I do not care for prototyping.
 
